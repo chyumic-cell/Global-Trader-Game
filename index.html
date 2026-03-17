@@ -1858,121 +1858,157 @@ function createForcedDecision() {
       setMessage(resultMessage);
     }
 
-    function nextTurn() {
-      if (activeIncident()) {
-        return setMessage("Resolve the active problem before ending another turn.");
-      }
+function nextTurn() {
+  if (activeIncident()) {
+    return setMessage("Resolve the active problem before ending another turn.");
+  }
 
-      const wasDetained = state.detainedTurns > 0;
-      if (wasDetained) {
-        state.detainedTurns = Math.max(0, state.detainedTurns - 1);
-      }
+  const wasDetained = state.detainedTurns > 0;
+  if (wasDetained) {
+    state.detainedTurns = Math.max(0, state.detainedTurns - 1);
+  }
 
-      const decremented = state.shipments.map((shipment) => ({
-        ...shipment,
-        turns: shipment.turns - 1,
-      }));
-      const finished = decremented.filter((shipment) => shipment.turns <= 0);
-      const ongoing = decremented.filter((shipment) => shipment.turns > 0);
+  const decremented = state.shipments.map((shipment) => ({
+    ...shipment,
+    turns: shipment.turns - 1,
+  }));
 
-      let newMoney = state.money;
-      const messages = [];
-      const newIncidents = [];
+  const survivors = [];
+  let newMoney = state.money;
+  const messages = [];
+  const newIncidents = [];
 
-      finished.forEach((shipment) => {
-        const incident = createIncident(shipment, cityProfiles[shipment.to]);
-        if (incident) {
-          newIncidents.push(incident);
-          messages.push("Problem on route to " + shipment.to + ": " + incident.title);
-        } else {
-          shipment.loads.forEach((load) => {
-            state.cityStorage[shipment.to][load.item] = (state.cityStorage[shipment.to][load.item] || 0) + load.qty;
-          });
-          messages.push("Shipment arrived in " + shipment.to + " and is now waiting in storage.");
-        }
-      });
+  decremented.forEach((shipment) => {
+    const destination = cityProfiles[shipment.to];
+    const hasIllegal = shipment.loads.some((load) => illegalGoods.has(load.item));
 
-      allCities.forEach((city) => {
-        const items = state.cityStorage[city] || {};
-        const totalStored = Object.values(items).reduce((sum, qty) => sum + qty, 0);
-        if (totalStored === 0) return;
-
-        const prepaid = state.storagePlan[city];
-        const storageCost = prepaid ? totalStored * 2 : totalStored * 6;
-        newMoney -= storageCost;
-
-        if (!prepaid) {
-          newMoney -= totalStored * 2;
-          messages.push("Storage penalties hit in " + city + " because no warehouse plan was in place.");
-        }
-
-        const illegalStored = Object.keys(items).some((item) => illegalGoods.has(item));
-        if (
-          illegalStored &&
-          Math.random() < cityProfiles[city].law * (prepaid ? 0.18 : 0.32) + state.notoriety / 250
-        ) {
-          newIncidents.push({
-            id: city + "-storage-" + state.turn,
-            type: "customs",
-            shipment: {
-              id: Date.now() + Math.floor(Math.random() * 1000),
-              loads: Object.entries(items).map(([item, qty]) => ({ item, qty })),
-              totalQty: totalStored,
-              from: city,
-              to: city,
-              turns: 0,
-              originalTurns: 0,
-              transport: "Truck",
-              security: { insurance: false, guards: false, bribe: prepaid, stealth: false },
-              totalCost: 0,
-              risk: 0,
-            },
-            title: "Stored contraband drew attention in " + city,
-            description:
-              "Illegal goods sat in storage too long. Customs noticed. Warehouses are not magical voids.",
-            options: ["customsBribe", "acceptLoss"],
-          });
-        }
-      });
-
-      const updatedManipulations = makeEmptyManipulations();
-      allCities.forEach((city) => {
-        Object.entries(state.manipulationState[city] || {}).forEach(([item, multiplier]) => {
-          const nextMultiplier = Math.max(1, multiplier - 0.08);
-          if (nextMultiplier > 1.01) {
-            updatedManipulations[city][item] = nextMultiplier;
-          }
+    if (shipment.turns <= 0) {
+      const incident = createIncident(shipment, destination, false);
+      if (incident) {
+        newIncidents.push(incident);
+        messages.push(`Problem on route to ${shipment.to}: ${incident.title}`);
+      } else {
+        shipment.loads.forEach((load) => {
+          state.cityStorage[shipment.to][load.item] =
+            (state.cityStorage[shipment.to][load.item] || 0) + load.qty;
         });
-      });
-
-      const marketStep = advanceStableMarket(
-        state.market,
-        updatedManipulations,
-        state.cityStorage,
-        ongoing,
-        state.turn,
-      );
-
-      state.turn += 1;
-      state.money = Math.max(0, newMoney);
-      state.shipments = ongoing;
-      state.manipulationState = updatedManipulations;
-      state.market = marketStep.next;
-      state.marketHistory = [...state.marketHistory.slice(-19), deepClone(marketStep.next)];
-      state.incidentQueue = [...newIncidents, ...state.incidentQueue];
-      state.marketNews = [...marketStep.headlines, ...state.marketNews].slice(0, 8);
-      state.notoriety = Math.max(0, state.notoriety - 1);
-
-      if (wasDetained) {
-        messages.unshift("You lost a turn to detention while the markets kept moving without you.");
+        messages.push(`Shipment arrived in ${shipment.to} and is now waiting in storage.`);
       }
+      return;
+    }
 
-      state.message =
-        messages.length > 0
-          ? messages.join(" ")
-          : marketStep.headlines[0] || "Turn advanced. Markets shifted, storage bills arrived, and life got harder.";
+    const midRouteChance = clamp(
+      shipment.risk * 0.45 +
+        (shipment.transport === "Ship" ? 0.1 : 0) +
+        (shipment.transport === "Plane" ? destination.airportLoss * 0.4 : 0) +
+        (hasIllegal ? 0.09 : 0),
+      0.04,
+      0.7,
+    );
 
-      render();
+    if (Math.random() < midRouteChance) {
+      const incident = createIncident(shipment, destination, true);
+      if (incident) {
+        newIncidents.push(incident);
+        messages.push(`Mid-route problem on the way to ${shipment.to}: ${incident.title}`);
+        return;
+      }
+    }
+
+    survivors.push(shipment);
+  });
+
+  allCities.forEach((city) => {
+    const items = state.cityStorage[city] || {};
+    const totalStored = Object.values(items).reduce((sum, qty) => sum + qty, 0);
+    if (totalStored === 0) return;
+
+    const prepaid = state.storagePlan[city];
+    const storageCost = prepaid ? totalStored * 2 : totalStored * 6;
+    newMoney -= storageCost;
+
+    if (!prepaid) {
+      newMoney -= totalStored * 2;
+      messages.push(`Storage penalties hit in ${city} because no warehouse plan was in place.`);
+    }
+
+    const illegalStored = Object.keys(items).some((item) => illegalGoods.has(item));
+    if (
+      illegalStored &&
+      Math.random() < cityProfiles[city].law * (prepaid ? 0.22 : 0.38) + state.notoriety / 220
+    ) {
+      newIncidents.push({
+        id: `${city}-storage-${state.turn}`,
+        type: "customs",
+        shipment: {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          loads: [],
+          totalQty: totalStored,
+          from: city,
+          to: city,
+          turns: 0,
+          originalTurns: 0,
+          transport: "Truck",
+          security: { insurance: false, guards: false, bribe: prepaid, stealth: false },
+          totalCost: 0,
+          risk: 0,
+        },
+        title: `Stored contraband drew attention in ${city}`,
+        description:
+          "Illegal goods sat in storage too long. Customs noticed. Warehouses are not magical voids.",
+        options: ["customsBribe", "acceptLoss"],
+      });
+    }
+  });
+
+  if (newIncidents.length === 0) {
+    const forcedDecision = createForcedDecision();
+    if (forcedDecision) {
+      newIncidents.push(forcedDecision);
+      messages.push(`A new problem demands a decision: ${forcedDecision.title}`);
+    }
+  }
+
+  const updatedManipulations = makeEmptyManipulations();
+  allCities.forEach((city) => {
+    Object.entries(state.manipulationState[city] || {}).forEach(([item, multiplier]) => {
+      const nextMultiplier = Math.max(1, multiplier - 0.08);
+      if (nextMultiplier > 1.01) {
+        updatedManipulations[city][item] = nextMultiplier;
+      }
+    });
+  });
+
+  const marketStep = advanceStableMarket(
+    state.market,
+    updatedManipulations,
+    state.cityStorage,
+    survivors,
+    state.turn,
+  );
+
+  state.turn += 1;
+  state.money = Math.max(0, newMoney);
+  state.shipments = survivors;
+  state.manipulationState = updatedManipulations;
+  state.market = marketStep.next;
+  state.marketHistory = [...state.marketHistory.slice(-19), deepClone(marketStep.next)];
+  state.incidentQueue = [...newIncidents, ...state.incidentQueue];
+  state.marketNews = [...marketStep.headlines, ...state.marketNews].slice(0, 8);
+  state.notoriety = Math.max(0, state.notoriety - 1);
+
+  if (wasDetained) {
+    messages.unshift("You lost a turn to detention while the markets kept moving without you.");
+  }
+
+  state.message =
+    messages.length > 0
+      ? messages.join(" ")
+      : marketStep.headlines[0] || "Turn advanced. Markets shifted, storage bills arrived, and life got harder.";
+
+  render();
+}
+
     }
 
     function colorForTransport(transport) {
@@ -2065,188 +2101,215 @@ function createForcedDecision() {
     }
 
     function renderMainScreen() {
-      const profile = cityProfiles[state.selectedTravelCity];
+  const profile = cityProfiles[state.selectedTravelCity];
 
-      return (
-        '<div class="panel">' +
-        '<div class="title">Main Screen</div>' +
-        '<div class="map">' +
-        '<div class="map-toolbar">' +
-        "<span>World Map</span>" +
-        '<div class="row">' +
-        '<button class="btn small ghost" onclick="setMapZoom(-0.15)">-</button>' +
-        '<button class="btn small ghost" onclick="resetMapZoom()">100%</button>' +
-        '<button class="btn small ghost" onclick="setMapZoom(0.15)">+</button>' +
-        "</div>" +
-        "</div>" +
-        '<div class="map-inner" style="transform:scale(' +
-        state.mapZoom +
-        ');">' +
-        '<div class="map-grid"></div>' +
-        '<div class="land" style="left:7%;top:20%;width:20%;height:40%;"></div>' +
-        '<div class="land" style="left:17%;top:48%;width:16%;height:24%;"></div>' +
-        '<div class="land" style="left:37%;top:10%;width:28%;height:64%;"></div>' +
-        '<div class="land" style="left:48%;top:28%;width:18%;height:44%;"></div>' +
-        '<div class="land" style="left:63%;top:20%;width:24%;height:52%;"></div>' +
-        '<div class="land" style="left:73%;top:56%;width:16%;height:14%;"></div>' +
-        mapRouteLines() +
-        allCities.map(cityNode).join("") +
-        "</div>" +
-        "</div>" +
+  return `
+    <div class="panel">
+      <div class="title">Main Screen</div>
 
-        '<div class="section mt-12">' +
-        '<div class="section-title">Travel</div>' +
-        '<div class="field"><label>Destination</label><select onchange="updateField(\'selectedTravelCity\', this.value)">' +
-        travelOptions()
-          .map(
-            (city) =>
-              '<option value="' +
-              city +
-              '"' +
-              (state.selectedTravelCity === city ? " selected" : "") +
-              ">" +
-              city +
-              "</option>",
-          )
-          .join("") +
-        "</select></div>" +
+      <div class="map">
+        <div class="map-toolbar">
+          <span>World Map</span>
+          <div class="row">
+            <button class="btn small ghost" onclick="setMapZoom(-0.15)">-</button>
+            <button class="btn small ghost" onclick="resetMapZoom()">100%</button>
+            <button class="btn small ghost" onclick="setMapZoom(0.15)">+</button>
+          </div>
+        </div>
 
-        '<div class="list-item">' +
-        '<div class="list-title">' +
-        state.selectedTravelCity +
-        "</div>" +
-        '<div class="list-text">' +
-        profile.continent +
-        "</div>" +
-        '<div class="chip-row">' +
-        (profile.safeHaven ? '<div class="chip">Safe Haven</div>' : "") +
-        (profile.strictEntry ? '<div class="chip">Strict Entry</div>' : "") +
-        '<div class="chip">Law ' + Math.round(profile.law * 100) + "%</div>" +
-        '<div class="chip">Corruption ' + Math.round(profile.corruption * 100) + "%</div>" +
-        "</div>" +
-        "</div>" +
+        <div class="map-inner" style="transform:scale(${state.mapZoom});">
+          <div class="map-grid"></div>
+          <div class="land" style="left:7%;top:20%;width:20%;height:40%;"></div>
+          <div class="land" style="left:17%;top:48%;width:16%;height:24%;"></div>
+          <div class="land" style="left:37%;top:10%;width:28%;height:64%;"></div>
+          <div class="land" style="left:48%;top:28%;width:18%;height:44%;"></div>
+          <div class="land" style="left:63%;top:20%;width:24%;height:52%;"></div>
+          <div class="land" style="left:73%;top:56%;width:16%;height:14%;"></div>
+          ${mapRouteLines()}
+          ${allCities.map(cityNode).join("")}
+        </div>
+      </div>
 
-        '<div class="grid-2 mt-10">' +
-        '<button class="btn primary" onclick="travel()">Travel</button>' +
-        '<button class="btn ghost" onclick="buyFakePassport()">' +
-        (state.fakePassport ? "Upgrade Passport" : "Fake Passport") +
-        "</button>" +
-        "</div>" +
+      <div class="section mt-12">
+        <div class="section-title">Travel</div>
 
-        '<div class="list-item mt-10">' +
-        '<div class="list-text">Passport: ' +
-        (state.fakePassport ? (state.passportQuality * 100).toFixed(0) + "% quality" : "None") +
-        " | Detained turns: " +
-        state.detainedTurns +
-        "</div>" +
-        "</div>" +
-        "</div>" +
+        <div class="field">
+          <label>Destination</label>
+          <select onchange="updateField('selectedTravelCity', this.value)">
+            ${travelOptions()
+              .map(
+                (city) =>
+                  `<option value="${city}"${state.selectedTravelCity === city ? " selected" : ""}>${city}</option>`,
+              )
+              .join("")}
+          </select>
+        </div>
 
-        '<div class="section">' +
-        '<div class="section-title">Latest News</div>' +
-        (state.marketNews.length === 0
-          ? '<div class="subtle">No major market shocks yet.</div>'
-          : state.marketNews
-              .slice(0, 3)
-              .map((entry) => '<div class="list-item"><div class="list-text" style="margin-top:0;">' + entry + "</div></div>")
-              .join("")) +
-        "</div>" +
-        "</div>"
-      );
-    }
+        <div class="list-item">
+          <div class="list-title">${state.selectedTravelCity}</div>
+          <div class="list-text">${profile.continent}</div>
+          <div class="chip-row">
+            ${profile.safeHaven ? '<div class="chip">Safe Haven</div>' : ""}
+            ${profile.strictEntry ? '<div class="chip">Strict Entry</div>' : ""}
+            <div class="chip">Law ${Math.round(profile.law * 100)}%</div>
+            <div class="chip">Corruption ${Math.round(profile.corruption * 100)}%</div>
+          </div>
+        </div>
 
-    function renderMarketScreen() {
-      const prices = currentPrices();
-      const cheapest = cheapestForItem();
-      const priciest = priciestForItem();
+        <div class="grid-2 mt-10">
+          <button class="btn primary" onclick="travel()">Travel</button>
+          <button class="btn ghost" onclick="buyFakePassport()">
+            ${state.fakePassport ? "Upgrade Passport" : "Fake Passport"} ($4,500)
+          </button>
+        </div>
 
-      return (
-        '<div class="panel">' +
-        '<div class="title">Market</div>' +
+        <div class="list-item mt-10">
+          <div class="list-text" style="margin-top:0;">
+            Passport: ${state.fakePassport ? `${(state.passportQuality * 100).toFixed(0)}% quality` : "None"}<br>
+            Detained turns: ${state.detainedTurns}<br>
+            Fake passport price: $4,500
+          </div>
+        </div>
+      </div>
 
-        '<div class="section">' +
-        '<div class="section-title">Trade</div>' +
+      <div class="section">
+        <div class="section-title">Active Routes</div>
+        ${renderActiveRoutesList()}
+      </div>
 
-        '<div class="field"><label>Category</label><select onchange="setMarketCategory(this.value)">' +
-        Object.keys(productCatalog)
-          .map(
-            (category) =>
-              '<option value="' +
-              category +
-              '"' +
-              (state.marketCategory === category ? " selected" : "") +
-              ">" +
-              category +
-              "</option>",
-          )
-          .join("") +
-        "</select></div>" +
+      <div class="section">
+        <div class="section-title">Latest News</div>
+        ${
+          state.marketNews.length === 0
+            ? '<div class="subtle">No major market shocks yet.</div>'
+            : state.marketNews
+                .slice(0, 3)
+                .map(
+                  (entry) =>
+                    `<div class="list-item"><div class="list-text" style="margin-top:0;">${entry}</div></div>`,
+                )
+                .join("")
+        }
+      </div>
+    </div>
+  `;
+}
 
-        '<div class="field"><label>Item</label><select onchange="updateField(\'marketItem\', this.value)">' +
-        productCatalog[state.marketCategory]
-          .map(
-            (item) =>
-              '<option value="' +
-              item +
-              '"' +
-              (state.marketItem === item ? " selected" : "") +
-              ">" +
-              item +
-              "</option>",
-          )
-          .join("") +
-        "</select></div>" +
+  function renderMarketScreen() {
+  const prices = currentPrices();
+  const cheapest = cheapestForItem();
+  const priciest = priciestForItem();
+  const piracy = piracyPreview();
+  const theft = theftPreview();
+  const shortage = shortagePreview();
 
-        '<div class="field"><label>Amount</label><input value="' +
-        state.tradeAmount +
-        '" onchange="updateField(\'tradeAmount\', this.value)" /></div>' +
+  return `
+    <div class="panel">
+      <div class="title">Market</div>
 
-        '<div class="list-item">' +
-        '<div class="list-row"><div class="list-title">Price in ' +
-        state.currentCity +
-        '</div><div class="badge">$' +
-        ((prices[state.marketItem] || 0).toLocaleString()) +
-        "</div></div>" +
-        '<div class="list-text">World average: $' +
-        worldAverageForItem().toLocaleString() +
-        "<br>Cheapest: " +
-        cheapest.city +
-        " ($" +
-        cheapest.price.toLocaleString() +
-        ")<br>Best sale: " +
-        priciest.city +
-        " ($" +
-        priciest.price.toLocaleString() +
-        ")</div>" +
-        "</div>" +
+      <div class="section">
+        <div class="section-title">Trade</div>
 
-        '<div class="grid-2 mt-10">' +
-        '<button class="btn primary" onclick="buyItem()">Buy</button>' +
-        '<button class="btn ghost" onclick="sellItem()">Sell</button>' +
-        "</div>" +
-        "</div>" +
+        <div class="field">
+          <label>Category</label>
+          <select onchange="setMarketCategory(this.value)">
+            ${Object.keys(productCatalog)
+              .map(
+                (category) =>
+                  `<option value="${category}"${state.marketCategory === category ? " selected" : ""}>${category}</option>`,
+              )
+              .join("")}
+          </select>
+        </div>
 
-        '<div class="section">' +
-        '<div class="section-title">Cargo</div>' +
-        renderCargoList(state.cargo, "No cargo in hand.") +
-        '<div class="mt-12"></div>' +
-        '<div class="section-title">Stored in ' + state.currentCity + "</div>" +
-        '<div class="subtle">Prepaid storage: ' + (state.storagePlan[state.currentCity] ? "Yes" : "No") + "</div>" +
-        '<div class="mt-8">' + renderCargoList(currentStorage(), "Nothing waiting in local storage.") + "</div>" +
-        "</div>" +
+        <div class="field">
+          <label>Item</label>
+          <select onchange="updateField('marketItem', this.value)">
+            ${productCatalog[state.marketCategory]
+              .map(
+                (item) =>
+                  `<option value="${item}"${state.marketItem === item ? " selected" : ""}>${item}</option>`,
+              )
+              .join("")}
+          </select>
+        </div>
 
-        '<div class="section">' +
-        '<div class="section-title">Underground</div>' +
-        '<div class="grid-3">' +
-        '<button class="btn ghost" onclick="commitPiracy()">Piracy</button>' +
-        '<button class="btn ghost" onclick="commitTheft()">Theft</button>' +
-        '<button class="btn ghost" onclick="createShortage()">Shortage</button>' +
-        "</div>" +
-        '<div class="list-item mt-10"><div class="list-text" style="margin-top:0;">Higher notoriety increases scrutiny, storage detection, fines, and border trouble.</div></div>' +
-        "</div>" +
-        "</div>"
-      );
-    }
+        <div class="field">
+          <label>Amount</label>
+          <input value="${state.tradeAmount}" onchange="updateField('tradeAmount', this.value)" />
+        </div>
+
+        <div class="list-item">
+          <div class="list-row">
+            <div class="list-title">Price in ${state.currentCity}</div>
+            <div class="badge">$${(prices[state.marketItem] || 0).toLocaleString()}</div>
+          </div>
+          <div class="list-text">
+            World average: $${worldAverageForItem().toLocaleString()}<br>
+            Cheapest: ${cheapest.city} ($${cheapest.price.toLocaleString()})<br>
+            Best sale: ${priciest.city} ($${priciest.price.toLocaleString()})
+          </div>
+        </div>
+
+        <div class="grid-2 mt-10">
+          <button class="btn primary" onclick="buyItem()">Buy</button>
+          <button class="btn ghost" onclick="sellItem()">Sell</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Cargo</div>
+        ${renderCargoList(state.cargo, "No cargo in hand.")}
+        <div class="mt-12"></div>
+        <div class="section-title">Stored in ${state.currentCity}</div>
+        <div class="subtle">Prepaid storage: ${state.storagePlan[state.currentCity] ? "Yes" : "No"}</div>
+        <div class="mt-8">${renderCargoList(currentStorage(), "Nothing waiting in local storage.")}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Underground</div>
+
+        <div class="grid-3">
+          <button class="btn ghost" onclick="commitPiracy()">Piracy</button>
+          <button class="btn ghost" onclick="commitTheft()">Theft</button>
+          <button class="btn ghost" onclick="createShortage()">Shortage</button>
+        </div>
+
+        <div class="list-item mt-10">
+          <div class="list-title">Piracy</div>
+          <div class="list-text">
+            Estimated reward: $${piracy.minReward.toLocaleString()} to $${piracy.maxReward.toLocaleString()}<br>
+            Current risk near ${state.currentCity}: ${piracy.riskPct}%
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-title">Theft</div>
+          <div class="list-text">
+            Selected amount: ${theft.qty}<br>
+            Current risk: ${theft.riskPct}%<br>
+            Possible fine if caught: $${theft.fine.toLocaleString()}
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-title">Shortage Scheme</div>
+          <div class="list-text">
+            Upfront cost: $${shortage.cost.toLocaleString()}<br>
+            Current risk: ${shortage.riskPct}%<br>
+            This pushes the selected good upward in the current city for a few turns.
+          </div>
+        </div>
+
+        <div class="list-item">
+          <div class="list-text" style="margin-top:0;">
+            Higher notoriety increases scrutiny, storage detection, fines, border trouble, and the chance of forced decisions.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
     function renderLogisticsScreen() {
       const options = availableTransport();
@@ -2587,33 +2650,30 @@ function createForcedDecision() {
     function renderIncident() {
       const incident = activeIncident();
       if (!incident || !incident.shipment) return "";
-
-      return (
-        '<div class="panel incident">' +
-        '<div class="title">Active Problem: ' +
-        incident.title +
-        "</div>" +
-        '<div class="list-text" style="margin-top:0;">' +
-        incident.description +
-        "</div>" +
-        '<div class="list-text">Cargo: ' +
-        incident.shipment.loads.map((load) => load.item + " x " + load.qty).join(", ") +
-        "</div>" +
-        '<div class="grid-2 mt-10">' +
-        incident.options
-          .map(
-            (optionKey) =>
-              '<button class="btn ' +
-              (optionKey === "acceptLoss" ? "ghost" : "primary") +
-              '" onclick="resolveIncident(\'' +
-              optionKey +
-              "')\">" +
-              crisisActions[optionKey].label +
-              "</button>",
-          )
-          .join("") +
-        "</div></div>"
-      );
+    
+      const cargoText =
+        incident.shipment.loads && incident.shipment.loads.length > 0
+          ? incident.shipment.loads.map((load) => load.item + " x " + load.qty).join(", ")
+          : "Operational problem";
+    
+      return `
+        <div class="panel incident">
+          <div class="title">Active Problem: ${incident.title}</div>
+          <div class="list-text" style="margin-top:0;">${incident.description}</div>
+          <div class="list-text">Cargo: ${cargoText}</div>
+          <div class="grid-2 mt-10">
+            ${incident.options
+              .map(
+                (optionKey) => `
+                  <button class="btn ${optionKey === "acceptLoss" ? "ghost" : "primary"}" onclick="resolveIncident('${optionKey}')">
+                    ${crisisActions[optionKey].label}
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
     }
 
     function renderStatus() {
