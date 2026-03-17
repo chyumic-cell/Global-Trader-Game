@@ -1090,6 +1090,115 @@
       return Object.values(currentStorage()).reduce((sum, qty) => sum + qty, 0);
     }
 
+    function renderActiveRoutesList() {
+  if (state.shipments.length === 0) {
+    return '<div class="list-item"><div class="subtle">No active routes yet. Send a shipment and it will appear here and on the map.</div></div>';
+  }
+
+  return state.shipments
+    .map(
+      (shipment) => `
+        <div class="list-item">
+          <div class="list-row">
+            <div class="list-title">${shipment.from} → ${shipment.to}</div>
+            <div class="badge">${shipment.totalQty}</div>
+          </div>
+          <div class="list-text">
+            ${shipment.transport} | ${shipment.turns} turn${shipment.turns > 1 ? "s" : ""} left | Risk ${Math.round(shipment.risk * 100)}%<br>
+            Cargo: ${shipment.loads.map((load) => `${load.item} x ${load.qty}`).join(", ")}
+          </div>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function piracyPreview() {
+  const profile = currentProfile();
+  const risk = clamp(
+    0.25 + profile.law * 0.45 - profile.corruption * 0.18 + state.notoriety / 160,
+    0.05,
+    0.95,
+  );
+
+  return {
+    riskPct: Math.round(risk * 100),
+    minReward: Math.round(300 + profile.piracy * 1200),
+    maxReward: Math.round(800 + profile.piracy * 2600),
+  };
+}
+
+function theftPreview() {
+  const qty = Math.max(1, parseInt(state.tradeAmount, 10) || 1);
+  const profile = currentProfile();
+  const risk = clamp(
+    0.18 + profile.law * 0.42 - profile.corruption * 0.16 + state.notoriety / 170,
+    0.05,
+    0.95,
+  );
+
+  const fine = Math.round((currentPrices()[state.marketItem] || 0) * qty * (0.8 + profile.law));
+
+  return {
+    qty,
+    riskPct: Math.round(risk * 100),
+    fine,
+  };
+}
+
+function shortagePreview() {
+  const qty = Math.max(1, parseInt(state.tradeAmount, 10) || 1);
+  const profile = currentProfile();
+  const cost = (currentPrices()[state.marketItem] || 0) * qty;
+  const risk = clamp(
+    0.16 + profile.law * 0.34 - profile.corruption * 0.1 + state.notoriety / 200,
+    0.04,
+    0.95,
+  );
+
+  return {
+    qty,
+    cost,
+    riskPct: Math.round(risk * 100),
+  };
+}
+
+function createForcedDecision() {
+  if ((state.turn + 1) % 3 !== 0 && state.notoriety < 15 && state.shipments.length === 0) {
+    return null;
+  }
+
+  const storageCity = allCities.find(
+    (city) => Object.values(state.cityStorage[city] || {}).reduce((sum, qty) => sum + qty, 0) > 0,
+  );
+
+  const city = storageCity || state.currentCity;
+  const useCustoms = !!storageCity || state.notoriety > 35;
+
+  return {
+    id: `forced-${city}-${state.turn}`,
+    type: useCustoms ? "customs" : "police",
+    shipment: {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      loads: [],
+      totalQty: 0,
+      from: city,
+      to: city,
+      turns: 0,
+      originalTurns: 0,
+      transport: "Truck",
+      security: { insurance: false, guards: false, bribe: false, stealth: false },
+      totalCost: 0,
+      risk: 0.12,
+    },
+    title: useCustoms ? `Audit in ${city}` : `Police pressure in ${city}`,
+    description: useCustoms
+      ? "Officials opened an audit on your operation. You have to deal with it before moving on."
+      : "Local police decided to take an interest in your operation. You have to respond.",
+    options: useCustoms ? ["customsBribe", "acceptLoss"] : ["policeBribe", "acceptLoss"],
+  };
+}
+
     function notorietyLabel() {
       if (state.notoriety < 20) return "Unknown";
       if (state.notoriety < 45) return "Suspicious";
