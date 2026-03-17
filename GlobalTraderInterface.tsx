@@ -471,19 +471,25 @@ function buildPriceHistoryRows(
   });
 }
 
-function createIncident(shipment: Shipment, destinationProfile: CityProfile): Incident | null {
+function createIncident(shipment, destinationProfile, isMidRoute = false) {
   const hasIllegal = shipment.loads.some((load) => illegalGoods.has(load.item));
 
   if (shipment.transport === "Ship") {
-    const pirateChance =
-      destinationProfile.piracy * (shipment.security.guards ? 0.35 : 0.8) + shipment.risk * 0.12;
+    const pirateChance = clamp(
+      0.12 +
+        destinationProfile.piracy * 0.95 +
+        shipment.risk * 0.18 -
+        (shipment.security.guards ? 0.12 : 0),
+      0.08,
+      0.88,
+    );
 
-    if (Math.random() < clamp(pirateChance, 0.03, 0.7)) {
+    if (Math.random() < pirateChance) {
       return {
-        id: `${shipment.id}-pirates`,
+        id: `${shipment.id}-pirates-${isMidRoute ? "mid" : "end"}`,
         type: "pirates",
         shipment,
-        title: `Pirate attack near ${shipment.to}`,
+        title: isMidRoute ? `Pirate attack on route to ${shipment.to}` : `Pirate attack near ${shipment.to}`,
         description:
           "The route was hit by raiders. Armed guards give you a much better chance of saving the cargo.",
         options: ["acceptLoss"],
@@ -492,19 +498,72 @@ function createIncident(shipment: Shipment, destinationProfile: CityProfile): In
   }
 
   if (shipment.transport === "Plane") {
-    const airportChance = destinationProfile.airportLoss * 0.95;
-    if (Math.random() < clamp(airportChance, 0.02, 0.35)) {
+    const airportChance = clamp(
+      0.05 + destinationProfile.airportLoss * 0.95 + shipment.risk * 0.12,
+      0.05,
+      0.42,
+    );
+
+    if (Math.random() < airportChance) {
       return {
-        id: `${shipment.id}-airport`,
+        id: `${shipment.id}-airport-${isMidRoute ? "mid" : "end"}`,
         type: "airportLoss",
         shipment,
-        title: `Airport cargo mishandling in ${shipment.to}`,
+        title: `Cargo mishandling for ${shipment.to}`,
         description:
           "Ground crews lost part of the shipment. Insurance can soften the damage after the fact.",
         options: ["acceptLoss"],
       };
     }
   }
+
+  if (hasIllegal) {
+    const customsChance = clamp(
+      0.08 +
+        destinationProfile.law * 0.34 +
+        (destinationProfile.strictEntry ? 0.1 : 0) +
+        shipment.risk * 0.08 -
+        destinationProfile.corruption * 0.16 -
+        (shipment.security.stealth ? 0.09 : 0) -
+        (shipment.security.bribe ? 0.04 : 0),
+      0.06,
+      0.85,
+    );
+
+    if (Math.random() < customsChance) {
+      return {
+        id: `${shipment.id}-customs-${isMidRoute ? "mid" : "end"}`,
+        type: "customs",
+        shipment,
+        title: `Customs intervention for ${shipment.to}`,
+        description:
+          "Customs flagged the cargo. You can try bribing them, or accept confiscation and move on.",
+        options: ["customsBribe", "acceptLoss"],
+      };
+    }
+  }
+
+  const policeChance = clamp(
+    0.04 + destinationProfile.law * 0.12 + shipment.risk * 0.2 + (hasIllegal ? 0.07 : 0),
+    0.04,
+    0.48,
+  );
+
+  if (Math.random() < policeChance) {
+    return {
+      id: `${shipment.id}-police-${isMidRoute ? "mid" : "end"}`,
+      type: "police",
+      shipment,
+      title: `Police inquiry in ${shipment.to}`,
+      description:
+        "Authorities started asking questions about the shipment. You can try to make the problem disappear or let it escalate.",
+      options: ["policeBribe", "acceptLoss"],
+    };
+  }
+
+  return null;
+}
+
 
   if (hasIllegal) {
     const customsChance =
