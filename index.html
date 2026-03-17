@@ -1,0 +1,2704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <title>Global Trader Game</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg1: #eef6ff;
+      --bg2: #f8fafc;
+      --card: #ffffff;
+      --card-soft: #f8fafc;
+      --border: #dbe4f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #0f766e;
+      --primary-strong: #115e59;
+      --danger: #b91c1c;
+      --warning: #d97706;
+      --success: #15803d;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 154px 12px 110px;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      padding: 10px 10px 0;
+      background: linear-gradient(180deg, rgba(238, 246, 255, 0.95), rgba(248, 250, 252, 0.84));
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-inner {
+      width: 100%;
+      max-width: 430px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row.wrap {
+      flex-wrap: wrap;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 8px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 10px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      min-height: 46px;
+      transition: 0.15s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+      border-color: var(--primary-strong);
+      color: white;
+    }
+
+    .btn.ghost {
+      background: #fff;
+    }
+
+    .btn.warn {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #9a3412;
+    }
+
+    .btn.small {
+      min-height: 34px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      font-size: 13px;
+    }
+
+    .btn.active {
+      background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+      border-color: var(--primary-strong);
+      color: white;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+
+    .panel.soft {
+      background: var(--card-soft);
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 14px;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 3px;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    .badge.success {
+      background: #ecfdf5;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .badge.warn {
+      background: #fff7ed;
+      border-color: #fdba74;
+      color: #9a3412;
+    }
+
+    .badge.danger {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      padding: 12px;
+      color: var(--text);
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .list-item {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px 12px;
+    }
+
+    .list-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .list-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .list-text {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .section {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .map {
+      position: relative;
+      height: 320px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 35%),
+        linear-gradient(180deg, rgb(15, 23, 42), rgb(30, 41, 59));
+      color: white;
+    }
+
+    .map-inner {
+      position: absolute;
+      inset: 0;
+      transform-origin: center center;
+      transition: transform 0.2s ease;
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.18;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+
+    .land {
+      position: absolute;
+      border-radius: 45%;
+      background: rgba(71, 85, 105, 0.55);
+    }
+
+    .route-line {
+      position: absolute;
+      height: 2px;
+      border-radius: 999px;
+      transform-origin: left center;
+      background: rgba(147, 197, 253, 0.72);
+    }
+
+    .route-line.ship {
+      background: rgba(103, 232, 249, 0.72);
+    }
+
+    .route-line.train {
+      background: rgba(110, 231, 183, 0.72);
+    }
+
+    .route-line.truck {
+      background: rgba(251, 191, 36, 0.72);
+    }
+
+    .route-line.plane {
+      background: rgba(125, 211, 252, 0.72);
+    }
+
+    .shipment-dot {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      margin-left: -11px;
+      margin-top: -11px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .shipment-dot.plane {
+      background: #7dd3fc;
+    }
+
+    .shipment-dot.ship {
+      background: #67e8f9;
+    }
+
+    .shipment-dot.train {
+      background: #6ee7b7;
+    }
+
+    .shipment-dot.truck {
+      background: #fbbf24;
+    }
+
+    .city {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background: transparent;
+      border: 0;
+      color: white;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+    }
+
+    .city-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid white;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
+      margin: 0 auto;
+    }
+
+    .city-label {
+      margin-top: 6px;
+      min-width: 94px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 6px 8px;
+      font-size: 10px;
+      line-height: 1.35;
+      backdrop-filter: blur(6px);
+    }
+
+    .city-label strong {
+      display: block;
+      font-size: 11px;
+    }
+
+    .map-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: white;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      padding: 0 10px 10px;
+      background: linear-gradient(0deg, rgba(248, 250, 252, 0.97), rgba(248, 250, 252, 0.75));
+      backdrop-filter: blur(10px);
+    }
+
+    .bottom-nav-inner {
+      width: 100%;
+      max-width: 430px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .incident {
+      border: 2px solid #fcd34d;
+      background: #fffbeb;
+    }
+
+    .status-box {
+      background: #f8fafc;
+      border-radius: 18px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .canvas-wrap {
+      height: 280px;
+      width: 100%;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px;
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #f8fafc;
+      padding: 12px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .price-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .price-cell {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px 8px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .mt-8 { margin-top: 8px; }
+    .mt-10 { margin-top: 10px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const cityMapPositions = {
+      "New York": { x: 22, y: 34 },
+      Chicago: { x: 18, y: 31 },
+      "Los Angeles": { x: 9, y: 37 },
+      Toronto: { x: 21, y: 28 },
+      "Mexico City": { x: 15, y: 47 },
+      London: { x: 43, y: 25 },
+      Paris: { x: 45, y: 29 },
+      Berlin: { x: 49, y: 25 },
+      Moscow: { x: 58, y: 22 },
+      Istanbul: { x: 53, y: 33 },
+      Nairobi: { x: 57, y: 59 },
+      Lagos: { x: 47, y: 56 },
+      Johannesburg: { x: 55, y: 79 },
+      Cairo: { x: 55, y: 42 },
+      Casablanca: { x: 42, y: 39 },
+      "Sao Paulo": { x: 30, y: 73 },
+      "Buenos Aires": { x: 28, y: 86 },
+      Lima: { x: 20, y: 72 },
+      Bogota: { x: 19, y: 59 },
+      Santiago: { x: 21, y: 88 },
+      Dubai: { x: 62, y: 40 },
+      Singapore: { x: 77, y: 61 },
+      Tokyo: { x: 88, y: 34 },
+      Shanghai: { x: 82, y: 38 },
+      "Hong Kong": { x: 80, y: 45 },
+      Mumbai: { x: 71, y: 49 },
+      Bangkok: { x: 78, y: 51 },
+      Seoul: { x: 86, y: 31 },
+      Jakarta: { x: 79, y: 68 },
+      Manila: { x: 86, y: 54 },
+    };
+
+    const world = {
+      "North America": ["New York", "Chicago", "Los Angeles", "Toronto", "Mexico City"],
+      Europe: ["London", "Paris", "Berlin", "Moscow", "Istanbul"],
+      Africa: ["Nairobi", "Lagos", "Johannesburg", "Cairo", "Casablanca"],
+      "South America": ["Sao Paulo", "Buenos Aires", "Lima", "Bogota", "Santiago"],
+      Asia: ["Dubai", "Singapore", "Tokyo", "Shanghai", "Hong Kong", "Mumbai", "Bangkok", "Seoul", "Jakarta", "Manila"],
+    };
+
+    const continentColors = {
+      "North America": "#3b82f6",
+      Europe: "#10b981",
+      Africa: "#f59e0b",
+      "South America": "#f43f5e",
+      Asia: "#8b5cf6",
+    };
+
+    const cityToContinent = {};
+    Object.entries(world).forEach(([continent, cities]) => {
+      cities.forEach((city) => {
+        cityToContinent[city] = continent;
+      });
+    });
+
+    const allCities = Object.values(world).flat();
+
+    const cityProfiles = {
+      "New York": { continent: "North America", law: 0.92, corruption: 0.12, piracy: 0.02, airportLoss: 0.03, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Chicago: { continent: "North America", law: 0.82, corruption: 0.18, piracy: 0.02, airportLoss: 0.03, trainUse: true, shipUse: false, truckUse: true, safeHaven: false, strictEntry: false },
+      "Los Angeles": { continent: "North America", law: 0.82, corruption: 0.18, piracy: 0.08, airportLoss: 0.04, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Toronto: { continent: "North America", law: 0.9, corruption: 0.1, piracy: 0.01, airportLoss: 0.02, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      "Mexico City": { continent: "North America", law: 0.6, corruption: 0.45, piracy: 0.04, airportLoss: 0.05, trainUse: false, shipUse: false, truckUse: true, safeHaven: false, strictEntry: false },
+      London: { continent: "Europe", law: 0.93, corruption: 0.08, piracy: 0.02, airportLoss: 0.02, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Paris: { continent: "Europe", law: 0.9, corruption: 0.12, piracy: 0.02, airportLoss: 0.02, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Berlin: { continent: "Europe", law: 0.95, corruption: 0.05, piracy: 0.01, airportLoss: 0.02, trainUse: true, shipUse: false, truckUse: true, safeHaven: false, strictEntry: true },
+      Moscow: { continent: "Europe", law: 0.72, corruption: 0.34, piracy: 0.02, airportLoss: 0.04, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Istanbul: { continent: "Europe", law: 0.68, corruption: 0.32, piracy: 0.05, airportLoss: 0.04, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Nairobi: { continent: "Africa", law: 0.45, corruption: 0.55, piracy: 0.08, airportLoss: 0.05, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Lagos: { continent: "Africa", law: 0.38, corruption: 0.66, piracy: 0.15, airportLoss: 0.06, trainUse: false, shipUse: true, truckUse: true, safeHaven: true, strictEntry: false },
+      Johannesburg: { continent: "Africa", law: 0.62, corruption: 0.35, piracy: 0.06, airportLoss: 0.04, trainUse: true, shipUse: false, truckUse: true, safeHaven: false, strictEntry: false },
+      Cairo: { continent: "Africa", law: 0.58, corruption: 0.38, piracy: 0.04, airportLoss: 0.03, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Casablanca: { continent: "Africa", law: 0.62, corruption: 0.28, piracy: 0.05, airportLoss: 0.03, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      "Sao Paulo": { continent: "South America", law: 0.55, corruption: 0.42, piracy: 0.05, airportLoss: 0.05, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      "Buenos Aires": { continent: "South America", law: 0.65, corruption: 0.3, piracy: 0.04, airportLoss: 0.03, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Lima: { continent: "South America", law: 0.48, corruption: 0.5, piracy: 0.06, airportLoss: 0.05, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Bogota: { continent: "South America", law: 0.42, corruption: 0.58, piracy: 0.05, airportLoss: 0.05, trainUse: false, shipUse: false, truckUse: true, safeHaven: true, strictEntry: false },
+      Santiago: { continent: "South America", law: 0.7, corruption: 0.22, piracy: 0.03, airportLoss: 0.03, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Dubai: { continent: "Asia", law: 0.78, corruption: 0.28, piracy: 0.03, airportLoss: 0.03, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Singapore: { continent: "Asia", law: 0.98, corruption: 0.03, piracy: 0.02, airportLoss: 0.02, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Tokyo: { continent: "Asia", law: 0.96, corruption: 0.04, piracy: 0.02, airportLoss: 0.02, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Shanghai: { continent: "Asia", law: 0.84, corruption: 0.16, piracy: 0.03, airportLoss: 0.03, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      "Hong Kong": { continent: "Asia", law: 0.76, corruption: 0.2, piracy: 0.03, airportLoss: 0.03, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Mumbai: { continent: "Asia", law: 0.55, corruption: 0.42, piracy: 0.04, airportLoss: 0.05, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Bangkok: { continent: "Asia", law: 0.5, corruption: 0.45, piracy: 0.05, airportLoss: 0.05, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Seoul: { continent: "Asia", law: 0.92, corruption: 0.08, piracy: 0.02, airportLoss: 0.02, trainUse: true, shipUse: true, truckUse: true, safeHaven: false, strictEntry: true },
+      Jakarta: { continent: "Asia", law: 0.52, corruption: 0.46, piracy: 0.1, airportLoss: 0.05, trainUse: false, shipUse: true, truckUse: true, safeHaven: false, strictEntry: false },
+      Manila: { continent: "Asia", law: 0.48, corruption: 0.5, piracy: 0.12, airportLoss: 0.05, trainUse: false, shipUse: true, truckUse: true, safeHaven: true, strictEntry: false },
+    };
+
+    const productCatalog = {
+      "Fresh Produce": ["Apples", "Bananas", "Beef", "Fish", "Livestock"],
+      "Dried Food": ["Wheat", "Rice", "Coffee", "Spices"],
+      Electronics: ["TVs", "Phones", "Laptops", "Microchips"],
+      Industrial: ["Oil", "Steel", "Timber", "Chemicals"],
+      Luxury: ["Diamonds", "Gold", "Watches"],
+      Contraband: ["Drugs", "Weapons", "Counterfeit Goods"],
+    };
+
+    const illegalGoods = new Set(productCatalog.Contraband);
+    const allItems = Object.values(productCatalog).flat();
+
+    const basePrices = {
+      Apples: 12,
+      Bananas: 10,
+      Beef: 35,
+      Fish: 28,
+      Livestock: 120,
+      Wheat: 30,
+      Rice: 24,
+      Coffee: 18,
+      Spices: 22,
+      TVs: 420,
+      Phones: 650,
+      Laptops: 900,
+      Microchips: 1200,
+      Oil: 80,
+      Steel: 70,
+      Timber: 45,
+      Chemicals: 95,
+      Diamonds: 5000,
+      Gold: 2100,
+      Watches: 650,
+      Drugs: 2000,
+      Weapons: 1500,
+      "Counterfeit Goods": 220,
+    };
+
+    const cityModifiers = {
+      "New York": { Diamonds: 0.7, Wheat: 1.45, TVs: 1.15, Phones: 1.08, Gold: 1.1 },
+      Chicago: { Wheat: 1.2, Oil: 1.05, Beef: 0.88, Steel: 0.9 },
+      "Los Angeles": { TVs: 1.18, Phones: 1.12, Drugs: 1.15, Fish: 0.9 },
+      Toronto: { Diamonds: 0.9, Wheat: 1.25, Timber: 0.82, Chemicals: 1.08 },
+      "Mexico City": { Drugs: 0.72, Weapons: 0.88, Phones: 1.1, Coffee: 0.84, "Counterfeit Goods": 0.8 },
+      London: { Diamonds: 1.05, Watches: 1.08, Weapons: 1.3, Gold: 1.12 },
+      Paris: { Wheat: 1.2, Diamonds: 1.1, Watches: 0.9, Beef: 1.1 },
+      Berlin: { Laptops: 0.82, Drugs: 1.25, Chemicals: 0.86, Steel: 0.92 },
+      Moscow: { Weapons: 0.7, Oil: 0.88, Phones: 1.1, Steel: 0.84 },
+      Istanbul: { Weapons: 0.9, Wheat: 1.15, Drugs: 1.05, Spices: 0.78, Gold: 0.95 },
+      Nairobi: { Wheat: 0.7, Laptops: 1.2, Drugs: 0.95, Livestock: 0.74, Coffee: 0.8 },
+      Lagos: { Oil: 0.75, Phones: 1.22, Weapons: 0.92, Chemicals: 1.1 },
+      Johannesburg: { Diamonds: 0.78, Wheat: 1.18, Gold: 0.86, Beef: 0.9 },
+      Cairo: { Wheat: 0.82, Weapons: 1.08, Spices: 0.84, Fish: 0.92 },
+      Casablanca: { Oil: 0.9, Drugs: 1.1, Fish: 0.86, Coffee: 0.9 },
+      "Sao Paulo": { Drugs: 0.68, Weapons: 0.92, TVs: 1.08, Coffee: 0.7, Beef: 0.82 },
+      "Buenos Aires": { Wheat: 0.8, Laptops: 1.06, Beef: 0.74, Chemicals: 1.05 },
+      Lima: { Drugs: 0.72, Weapons: 0.95, Oil: 1.1, Fish: 0.76, Gold: 0.92 },
+      Bogota: { Drugs: 0.62, Weapons: 0.9, Phones: 1.08, Coffee: 0.66, "Counterfeit Goods": 0.76 },
+      Santiago: { Wheat: 0.85, Diamonds: 1.1, Timber: 0.82, Microchips: 1.08 },
+      Dubai: { Oil: 0.7, Phones: 0.82, Drugs: 1.18, Gold: 0.76, Watches: 0.84 },
+      Singapore: { Laptops: 0.6, Weapons: 1.25, Drugs: 1.3, Microchips: 0.66, TVs: 0.74 },
+      Tokyo: { Laptops: 0.74, Wheat: 1.18, Microchips: 0.72, Fish: 1.08 },
+      Shanghai: { Phones: 0.78, Oil: 0.92, TVs: 0.7, Steel: 0.86 },
+      "Hong Kong": { Diamonds: 0.82, Watches: 0.8, Gold: 0.88, Phones: 0.84 },
+      Mumbai: { Drugs: 0.86, Wheat: 0.76, Phones: 1.05, Spices: 0.62, Rice: 0.74 },
+      Bangkok: { Drugs: 0.78, Weapons: 1.05, TVs: 0.95, Rice: 0.72, Fish: 0.82 },
+      Seoul: { Phones: 0.72, Wheat: 1.12, Microchips: 0.68, Laptops: 0.76 },
+      Jakarta: { Oil: 0.82, Weapons: 0.96, Drugs: 0.82, Timber: 0.74, Fish: 0.78 },
+      Manila: { Drugs: 0.8, Weapons: 0.95, TVs: 1.08, Fish: 0.8, Bananas: 0.7 },
+    };
+
+    const transportTypes = {
+      Truck: { costPerUnit: 10, time: 2, baseRisk: 0.14, capacity: 40, mode: "land" },
+      Train: { costPerUnit: 7, time: 3, baseRisk: 0.09, capacity: 80, mode: "rail" },
+      Plane: { costPerUnit: 25, time: 1, baseRisk: 0.05, capacity: 20, mode: "air" },
+      Ship: { costPerUnit: 5, time: 5, baseRisk: 0.2, capacity: 150, mode: "sea" },
+    };
+
+    const securityOptions = {
+      insurance: { label: "Insurance", cost: 500, description: "Pays after cargo is lost" },
+      guards: { label: "Armed Guards", cost: 300, description: "Much better odds against pirates" },
+      bribe: { label: "Border Bribe", cost: 200, description: "Helps with corrupt routes" },
+      stealth: { label: "False Manifest", cost: 250, description: "Helps hide illegal cargo" },
+    };
+
+    const crisisActions = {
+      customsBribe: { label: "Bribe Customs" },
+      policeBribe: { label: "Bribe Police" },
+      judgeBribe: { label: "Bribe Judge" },
+      acceptLoss: { label: "Accept Loss" },
+    };
+
+    const spikeStories = [
+      "A regional panic-buying wave rippled through the market.",
+      "A surprise logistics bottleneck tightened supply overnight.",
+      "Rumors of future scarcity pushed traders into a frenzy.",
+      "A sudden procurement rush by large buyers drained local stock.",
+    ];
+
+    const dropStories = [
+      "A flood of new supply hit the docks without warning.",
+      "A botched demand forecast left warehouses overflowing.",
+      "Merchants undercut one another and prices sagged fast.",
+      "A random shipping glut dumped excess inventory into the city.",
+    ];
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function pickRandom(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function makeEmptyCityStorage() {
+      return Object.fromEntries(allCities.map((city) => [city, {}]));
+    }
+
+    function makeEmptyStoragePlan() {
+      return Object.fromEntries(allCities.map((city) => [city, false]));
+    }
+
+    function makeEmptyManipulations() {
+      return Object.fromEntries(allCities.map((city) => [city, {}]));
+    }
+
+    function generatePrices(city, manipulations, eventShocks) {
+      const prices = {};
+      Object.keys(basePrices).forEach((item) => {
+        let price = basePrices[item];
+        if (cityModifiers[city] && cityModifiers[city][item]) price *= cityModifiers[city][item];
+        if (manipulations && manipulations[item]) price *= manipulations[item];
+        if (eventShocks && eventShocks[item]) price *= eventShocks[item];
+        const fluctuation = 0.94 + Math.random() * 0.12;
+        prices[item] = Math.max(1, Math.round(price * fluctuation));
+      });
+      return prices;
+    }
+
+    function getAvailableTransport(from, to) {
+      const sameContinent = cityToContinent[from] === cityToContinent[to];
+      const fromProfile = cityProfiles[from];
+      const toProfile = cityProfiles[to];
+
+      return Object.entries(transportTypes).filter(([name]) => {
+        if (name === "Truck") return sameContinent && fromProfile.truckUse && toProfile.truckUse;
+        if (name === "Train") return sameContinent && fromProfile.trainUse && toProfile.trainUse;
+        if (name === "Ship") return fromProfile.shipUse && toProfile.shipUse;
+        if (name === "Plane") return true;
+        return false;
+      });
+    }
+
+    function calculateTransportCost(loads, transportName, from, to, security) {
+      const transport = transportTypes[transportName];
+      const sameContinent = cityToContinent[from] === cityToContinent[to];
+      const routeMultiplier = sameContinent ? 1 : 1.45;
+
+      const loadCost = loads.reduce((sum, load) => {
+        const itemMultiplier = load.item === "Diamonds" ? 1.25 : illegalGoods.has(load.item) ? 1.35 : 1;
+        return sum + load.qty * transport.costPerUnit * routeMultiplier * itemMultiplier;
+      }, 0);
+
+      const securityCost = Object.entries(security).reduce((sum, [key, enabled]) => {
+        return sum + (enabled ? securityOptions[key].cost : 0);
+      }, 0);
+
+      return Math.round(loadCost + securityCost);
+    }
+
+    function calculateShipmentRisk(shipment, destinationProfile, notoriety) {
+      const transport = transportTypes[shipment.transport];
+      let risk = transport.baseRisk;
+      risk += destinationProfile.piracy * (shipment.transport === "Ship" ? 0.8 : 0);
+      risk += destinationProfile.airportLoss * (shipment.transport === "Plane" ? 0.75 : 0);
+
+      const hasIllegal = shipment.loads.some((load) => illegalGoods.has(load.item));
+      if (hasIllegal) {
+        risk += destinationProfile.law * 0.35;
+        risk -= destinationProfile.corruption * 0.18;
+      }
+
+      if (shipment.security.guards) risk -= shipment.transport === "Ship" ? 0.14 : 0.06;
+      if (shipment.security.insurance) risk -= 0.02;
+      if (shipment.security.bribe) risk -= destinationProfile.corruption * 0.15;
+      if (shipment.security.stealth) risk -= hasIllegal ? 0.1 : 0.02;
+
+      risk += notoriety / 220;
+      return Math.min(0.92, Math.max(0.01, risk));
+    }
+
+    function getContinentBribeEffect(continent, type) {
+      const table = {
+        Africa: { customs: 0.82, police: 0.78, judge: 0.95 },
+        Asia: { customs: 0.58, police: 0.52, judge: 0.42 },
+        Europe: { customs: 0.18, police: 0.14, judge: 0.06 },
+        "North America": { customs: 0.12, police: 0.1, judge: 0.03 },
+        "South America": { customs: 0.68, police: 0.64, judge: 0.72 },
+      };
+
+      return (table[continent] && table[continent][type]) || 0.2;
+    }
+
+    function buildPriceHistoryRows(history, mode, city, good) {
+      return history.map((snapshot, index) => {
+        const row = { turn: index + 1 };
+        if (mode === "city") {
+          Object.entries(snapshot[city] || {}).forEach(([item, price]) => {
+            row[item] = price;
+          });
+        } else {
+          allCities.forEach((c) => {
+            row[c] = snapshot[c] && snapshot[c][good] ? snapshot[c][good] : 0;
+          });
+        }
+        return row;
+      });
+    }
+
+    function createIncident(shipment, destinationProfile) {
+      const hasIllegal = shipment.loads.some((load) => illegalGoods.has(load.item));
+
+      if (shipment.transport === "Ship") {
+        const pirateChance =
+          destinationProfile.piracy * (shipment.security.guards ? 0.35 : 0.8) + shipment.risk * 0.12;
+
+        if (Math.random() < clamp(pirateChance, 0.03, 0.7)) {
+          return {
+            id: shipment.id + "-pirates",
+            type: "pirates",
+            shipment,
+            title: "Pirate attack near " + shipment.to,
+            description:
+              "The route was hit by raiders. Armed guards give you a much better chance of saving the cargo.",
+            options: ["acceptLoss"],
+          };
+        }
+      }
+
+      if (shipment.transport === "Plane") {
+        const airportChance = destinationProfile.airportLoss * 0.95;
+        if (Math.random() < clamp(airportChance, 0.02, 0.35)) {
+          return {
+            id: shipment.id + "-airport",
+            type: "airportLoss",
+            shipment,
+            title: "Airport cargo mishandling in " + shipment.to,
+            description:
+              "Ground crews lost part of the shipment. Insurance can soften the damage after the fact.",
+            options: ["acceptLoss"],
+          };
+        }
+      }
+
+      if (hasIllegal) {
+        const customsChance =
+          destinationProfile.law * 0.28 +
+          (destinationProfile.strictEntry ? 0.12 : 0) -
+          destinationProfile.corruption * 0.16 -
+          (shipment.security.stealth ? 0.08 : 0) -
+          (shipment.security.bribe ? 0.05 : 0);
+
+        if (Math.random() < clamp(customsChance, 0.04, 0.78)) {
+          return {
+            id: shipment.id + "-customs",
+            type: "customs",
+            shipment,
+            title: "Customs seizure risk in " + shipment.to,
+            description:
+              "Customs flagged the cargo. You can try bribing them, or accept confiscation and move on.",
+            options: ["customsBribe", "acceptLoss"],
+          };
+        }
+      }
+
+      const policeChance = destinationProfile.law * 0.08 + shipment.risk * 0.12;
+      if (Math.random() < clamp(policeChance, 0.01, 0.28)) {
+        return {
+          id: shipment.id + "-police",
+          type: "police",
+          shipment,
+          title: "Police inquiry in " + shipment.to,
+          description:
+            "Authorities started asking questions about the shipment. You can try to make the problem disappear or let it escalate.",
+          options: ["policeBribe", "acceptLoss"],
+        };
+      }
+
+      return null;
+    }
+
+    function advanceStableMarket(market, manipulations, cityStorage, shipments, turn) {
+      const shockCity = Math.random() < 0.24 ? pickRandom(allCities) : null;
+      const shockItem = shockCity ? pickRandom(allItems) : null;
+      const shockDirection =
+        shockCity && shockItem ? (Math.random() < 0.5 ? "spike" : "drop") : null;
+      const shockMultiplier =
+        shockDirection === "spike"
+          ? 1.38 + Math.random() * 0.22
+          : shockDirection === "drop"
+            ? 0.66 + Math.random() * 0.16
+            : 1;
+
+      const next = {};
+      const movers = [];
+      const headlines = [];
+
+      allCities.forEach((city) => {
+        next[city] = {};
+        allItems.forEach((item) => {
+          let target = basePrices[item];
+          if (cityModifiers[city] && cityModifiers[city][item]) target *= cityModifiers[city][item];
+          if (manipulations[city] && manipulations[city][item]) target *= manipulations[city][item];
+
+          const storedQty = (cityStorage[city] && cityStorage[city][item]) || 0;
+          const inboundQty = shipments.reduce((sum, shipment) => {
+            if (shipment.to !== city) return sum;
+            const load = shipment.loads.find((entry) => entry.item === item);
+            if (!load) return sum;
+            return sum + load.qty / Math.max(1, shipment.turns);
+          }, 0);
+
+          target *= 1 - Math.min(0.2, storedQty / 260);
+          target *= 1 - Math.min(0.12, inboundQty / 180);
+
+          if (city === shockCity && item === shockItem) {
+            target *= shockMultiplier;
+          }
+
+          const current = (market[city] && market[city][item]) || target;
+          const drift = current + (target - current) * 0.22;
+          const noise = drift * (Math.random() * 0.06 - 0.03);
+          const price = Math.max(1, Math.round(drift + noise));
+
+          next[city][item] = price;
+          movers.push({
+            city,
+            item,
+            change: current ? (price - current) / current : 0,
+          });
+        });
+      });
+
+      if (shockCity && shockItem && shockDirection) {
+        const story = shockDirection === "spike" ? pickRandom(spikeStories) : pickRandom(dropStories);
+        headlines.push(
+          "Turn " +
+            (turn + 1) +
+            ": " +
+            shockItem +
+            " in " +
+            shockCity +
+            " " +
+            (shockDirection === "spike" ? "spiked" : "dropped") +
+            ". " +
+            story,
+        );
+      }
+
+      movers.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+      const strongest = movers[0];
+
+      if (strongest && Math.abs(strongest.change) > 0.06) {
+        headlines.push(
+          "Turn " +
+            (turn + 1) +
+            ": " +
+            strongest.item +
+            " in " +
+            strongest.city +
+            " " +
+            (strongest.change > 0 ? "is climbing" : "is softening") +
+            " after local market pressure.",
+        );
+      }
+
+      return { next, headlines };
+    }
+
+    const initialMarket = {};
+    allCities.forEach((city) => {
+      initialMarket[city] = generatePrices(city, {}, {});
+    });
+
+    const state = {
+      screen: "main",
+      currentCity: "New York",
+      selectedTravelCity: "Chicago",
+      selectedShipmentDestination: "Chicago",
+      selectedShipmentTransport: "Truck",
+
+      money: 10000,
+      cargo: {},
+      cityStorage: makeEmptyCityStorage(),
+      storagePlan: makeEmptyStoragePlan(),
+      turn: 1,
+
+      marketCategory: "Industrial",
+      marketItem: "Oil",
+      tradeAmount: "1",
+
+      shipmentItem: "Oil",
+      shipmentAmount: "1",
+      shipmentDraft: [],
+      security: {
+        insurance: false,
+        guards: false,
+        bribe: false,
+        stealth: false,
+      },
+
+      shipments: [],
+      incidentQueue: [],
+
+      dashboardMode: "city",
+      dashboardCity: "New York",
+      dashboardGood: "Oil",
+
+      mapZoom: 1,
+      notoriety: 0,
+      fakePassport: false,
+      passportQuality: 0,
+      detainedTurns: 0,
+
+      manipulationState: makeEmptyManipulations(),
+      market: deepClone(initialMarket),
+      marketHistory: [deepClone(initialMarket)],
+      marketNews: [],
+      message: "Welcome trader. Buy low, ship smart, and try not to get arrested.",
+    };
+
+    let chartInstance = null;
+
+    function currentProfile() {
+      return cityProfiles[state.currentCity];
+    }
+
+    function currentPrices() {
+      return state.market[state.currentCity] || {};
+    }
+
+    function currentStorage() {
+      return state.cityStorage[state.currentCity] || {};
+    }
+
+    function activeIncident() {
+      return state.incidentQueue[0] || null;
+    }
+
+    function cargoCount() {
+      return Object.values(state.cargo).reduce((sum, qty) => sum + qty, 0);
+    }
+
+    function storedCargoCount() {
+      return Object.values(currentStorage()).reduce((sum, qty) => sum + qty, 0);
+    }
+
+    function notorietyLabel() {
+      if (state.notoriety < 20) return "Unknown";
+      if (state.notoriety < 45) return "Suspicious";
+      if (state.notoriety < 75) return "Wanted";
+      return "Infamous";
+    }
+
+    function shipmentDestinationOptions() {
+      return allCities.filter((city) => city !== state.currentCity);
+    }
+
+    function travelOptions() {
+      return allCities.filter((city) => city !== state.currentCity);
+    }
+
+    function availableTransport() {
+      return getAvailableTransport(state.currentCity, state.selectedShipmentDestination);
+    }
+
+    function resolvedTransport() {
+      const options = availableTransport();
+      const found = options.find(([name]) => name === state.selectedShipmentTransport);
+      return found ? found[0] : options[0] ? options[0][0] : "Plane";
+    }
+
+    function destinationProfile() {
+      return cityProfiles[state.selectedShipmentDestination];
+    }
+
+    function routeCostPreview() {
+      if (state.shipmentDraft.length === 0) return 0;
+      return calculateTransportCost(
+        state.shipmentDraft,
+        resolvedTransport(),
+        state.currentCity,
+        state.selectedShipmentDestination,
+        state.security,
+      );
+    }
+
+    function routeRiskPreview() {
+      const loads =
+        state.shipmentDraft.length > 0 ? state.shipmentDraft : [{ item: state.shipmentItem, qty: 1 }];
+      return calculateShipmentRisk(
+        {
+          transport: resolvedTransport(),
+          security: state.security,
+          loads,
+        },
+        destinationProfile(),
+        state.notoriety,
+      );
+    }
+
+    function dashboardRows() {
+      return buildPriceHistoryRows(
+        state.marketHistory.slice(-14),
+        state.dashboardMode,
+        state.dashboardCity,
+        state.dashboardGood,
+      );
+    }
+
+    function dashboardSeries() {
+      return state.dashboardMode === "city"
+        ? Object.keys(state.market[state.dashboardCity] || {})
+        : allCities;
+    }
+
+    function itemCityPrices() {
+      return allCities.map((city) => ({
+        city,
+        price: (state.market[city] && state.market[city][state.marketItem]) || 0,
+      }));
+    }
+
+    function cheapestForItem() {
+      const entries = itemCityPrices();
+      return entries.reduce((best, entry) => (entry.price < best.price ? entry : best), entries[0]);
+    }
+
+    function priciestForItem() {
+      const entries = itemCityPrices();
+      return entries.reduce((best, entry) => (entry.price > best.price ? entry : best), entries[0]);
+    }
+
+    function worldAverageForItem() {
+      const entries = itemCityPrices();
+      const total = entries.reduce((sum, entry) => sum + entry.price, 0);
+      return Math.round(total / Math.max(1, entries.length));
+    }
+
+    function setMessage(text) {
+      state.message = text;
+      render();
+    }
+
+    function setScreen(name) {
+      state.screen = name;
+      render();
+    }
+
+    function updateField(key, value) {
+      state[key] = value;
+      render();
+    }
+
+    function setMarketCategory(value) {
+      state.marketCategory = value;
+      state.marketItem = productCatalog[value][0];
+      render();
+    }
+
+    function setSelectedShipmentDestination(value) {
+      state.selectedShipmentDestination = value;
+      const options = getAvailableTransport(state.currentCity, value);
+      if (!options.some(([name]) => name === state.selectedShipmentTransport)) {
+        state.selectedShipmentTransport = options[0] ? options[0][0] : "Plane";
+      }
+      render();
+    }
+
+    function nudgeLocalPrice(city, item, multiplier) {
+      state.market[city][item] = Math.max(1, Math.round((state.market[city][item] || 1) * multiplier));
+    }
+
+    function renderCargoList(items, emptyText) {
+      const entries = Object.entries(items).filter(([, qty]) => qty > 0);
+
+      if (entries.length === 0) {
+        return '<div class="subtle">' + emptyText + "</div>";
+      }
+
+      return (
+        '<div class="list">' +
+        entries
+          .map(
+            ([item, qty]) =>
+              '<div class="list-item"><div class="list-row"><div class="list-title">' +
+              item +
+              '</div><div class="badge">' +
+              qty +
+              "</div></div></div>",
+          )
+          .join("") +
+        "</div>"
+      );
+    }
+
+    function buyItem() {
+      const qty = parseInt(state.tradeAmount, 10);
+      if (!qty || qty <= 0) return setMessage("Enter a real amount greater than zero.");
+
+      const prices = currentPrices();
+      const unitPrice = prices[state.marketItem];
+      if (!unitPrice) return setMessage("That item is not available here.");
+
+      const cost = unitPrice * qty;
+      if (state.money < cost) return setMessage("Not enough money.");
+
+      state.money -= cost;
+      state.cargo[state.marketItem] = (state.cargo[state.marketItem] || 0) + qty;
+      nudgeLocalPrice(state.currentCity, state.marketItem, 1 + Math.min(0.14, qty * 0.01));
+      setMessage(
+        "Bought " +
+          qty +
+          " " +
+          state.marketItem +
+          " in " +
+          state.currentCity +
+          " for $" +
+          cost.toLocaleString() +
+          ".",
+      );
+    }
+
+    function sellItem() {
+      const qty = parseInt(state.tradeAmount, 10);
+      if (!qty || qty <= 0) return setMessage("Enter a real amount greater than zero.");
+
+      const localStorage = currentStorage();
+      const availableHere = (state.cargo[state.marketItem] || 0) + (localStorage[state.marketItem] || 0);
+      if (availableHere < qty) return setMessage("Not enough cargo in this city.");
+
+      const revenue = (currentPrices()[state.marketItem] || 0) * qty;
+      let remaining = qty;
+
+      state.money += revenue;
+
+      const stored = state.cityStorage[state.currentCity][state.marketItem] || 0;
+      if (stored > 0) {
+        const useFromStorage = Math.min(stored, remaining);
+        state.cityStorage[state.currentCity][state.marketItem] = stored - useFromStorage;
+        if (state.cityStorage[state.currentCity][state.marketItem] <= 0) {
+          delete state.cityStorage[state.currentCity][state.marketItem];
+        }
+        remaining -= useFromStorage;
+      }
+
+      if (remaining > 0) {
+        state.cargo[state.marketItem] = (state.cargo[state.marketItem] || 0) - remaining;
+        if (state.cargo[state.marketItem] <= 0) delete state.cargo[state.marketItem];
+      }
+
+      nudgeLocalPrice(state.currentCity, state.marketItem, 1 - Math.min(0.14, qty * 0.01));
+      setMessage(
+        "Sold " +
+          qty +
+          " " +
+          state.marketItem +
+          " in " +
+          state.currentCity +
+          " for $" +
+          revenue.toLocaleString() +
+          ".",
+      );
+    }
+
+    function addToShipmentDraft() {
+      const qty = parseInt(state.shipmentAmount, 10);
+      if (!qty || qty <= 0) return setMessage("Enter a real shipment amount.");
+
+      const owned = state.cargo[state.shipmentItem] || 0;
+      const alreadyAssigned = state.shipmentDraft
+        .filter((load) => load.item === state.shipmentItem)
+        .reduce((sum, load) => sum + load.qty, 0);
+
+      if (owned - alreadyAssigned < qty) {
+        return setMessage("You can only assign cargo you actually bought and still have free.");
+      }
+
+      const existing = state.shipmentDraft.find((load) => load.item === state.shipmentItem);
+      if (existing) {
+        state.shipmentDraft = state.shipmentDraft.map((load) =>
+          load.item === state.shipmentItem ? { ...load, qty: load.qty + qty } : load,
+        );
+      } else {
+        state.shipmentDraft.push({ item: state.shipmentItem, qty });
+      }
+
+      setMessage("Added " + qty + " " + state.shipmentItem + " to the shipment draft.");
+    }
+
+    function changeDraftQuantity(item, delta) {
+      state.shipmentDraft = state.shipmentDraft.flatMap((load) => {
+        if (load.item !== item) return [load];
+
+        const nextQty = load.qty + delta;
+        if (nextQty <= 0) return [];
+
+        const owned = state.cargo[item] || 0;
+        const assignedElsewhere = state.shipmentDraft
+          .filter((entry) => entry.item === item && entry !== load)
+          .reduce((sum, entry) => sum + entry.qty, 0);
+
+        if (nextQty > owned - assignedElsewhere) return [load];
+        return [{ ...load, qty: nextQty }];
+      });
+
+      render();
+    }
+
+    function removeDraftItem(item) {
+      state.shipmentDraft = state.shipmentDraft.filter((load) => load.item !== item);
+      render();
+    }
+
+    function toggleSecurity(key) {
+      state.security[key] = !state.security[key];
+      render();
+    }
+
+    function buyFakePassport() {
+      const cost = 4500;
+      if (state.money < cost) return setMessage("Not enough money for a forged identity package.");
+
+      const quality = Number((0.35 + Math.random() * 0.45).toFixed(2));
+      state.money -= cost;
+      state.fakePassport = true;
+      state.passportQuality = quality;
+      setMessage("You bought a fake passport. Quality: " + (quality * 100).toFixed(0) + "%.");
+    }
+
+    function checkArrival(city) {
+      const profile = cityProfiles[city];
+
+      if (profile.safeHaven) {
+        return {
+          result: "clear",
+          text: city + " functions as a safe haven. Nobody asked questions.",
+        };
+      }
+
+      if (!profile.strictEntry && state.notoriety < 35) {
+        return {
+          result: "clear",
+          text: "You entered " + city + " without major scrutiny.",
+        };
+      }
+
+      let arrestRisk = profile.law * 0.4 + state.notoriety / 115 - profile.corruption * 0.16;
+      if (state.fakePassport) arrestRisk *= 1 - state.passportQuality * 0.7;
+      arrestRisk = clamp(arrestRisk, 0.04, 0.94);
+
+      if (Math.random() < arrestRisk) {
+        return {
+          result: "arrest",
+          text: state.fakePassport
+            ? "Entry screening in " + city + " exposed your fake passport. Authorities detained you on arrival."
+            : "Authorities in " + city + " detained you on arrival.",
+        };
+      }
+
+      return {
+        result: "clear",
+        text: "You made it into " + city + ". Border control missed enough to let you through.",
+      };
+    }
+
+    function travel() {
+      if (activeIncident()) return setMessage("Resolve the active problem before travelling.");
+      if (state.detainedTurns > 0) return setMessage("You are detained and cannot travel.");
+      if (!state.selectedTravelCity || state.selectedTravelCity === state.currentCity) {
+        return setMessage("Pick another city.");
+      }
+
+      const arrival = checkArrival(state.selectedTravelCity);
+      const nextShipmentDestination =
+        state.selectedShipmentDestination === state.selectedTravelCity
+          ? allCities.find((city) => city !== state.selectedTravelCity) || state.selectedShipmentDestination
+          : state.selectedShipmentDestination;
+
+      state.currentCity = state.selectedTravelCity;
+      state.selectedShipmentDestination = nextShipmentDestination;
+
+      const routeOptions = getAvailableTransport(state.selectedTravelCity, nextShipmentDestination);
+      if (!routeOptions.some(([name]) => name === state.selectedShipmentTransport)) {
+        state.selectedShipmentTransport = routeOptions[0] ? routeOptions[0][0] : "Plane";
+      }
+
+      if (arrival.result === "arrest") {
+        state.detainedTurns = 2;
+        state.notoriety = Math.min(100, state.notoriety + 8);
+        return setMessage(arrival.text);
+      }
+
+      setMessage(arrival.text);
+    }
+
+    function dispatchShipment() {
+      if (activeIncident()) return setMessage("Resolve the active problem before sending new cargo.");
+      if (state.detainedTurns > 0) return setMessage("You are detained and cannot dispatch shipments.");
+      if (state.selectedShipmentDestination === state.currentCity) {
+        return setMessage("Pick another city for the shipment.");
+      }
+      if (state.shipmentDraft.length === 0) return setMessage("Add cargo to the shipment first.");
+
+      const transportName = resolvedTransport();
+      const transport = transportTypes[transportName];
+      const totalQty = state.shipmentDraft.reduce((sum, load) => sum + load.qty, 0);
+
+      if (totalQty > transport.capacity) {
+        return setMessage(transportName + " capacity is " + transport.capacity + ".");
+      }
+
+      const totalCost = calculateTransportCost(
+        state.shipmentDraft,
+        transportName,
+        state.currentCity,
+        state.selectedShipmentDestination,
+        state.security,
+      );
+
+      if (state.money < totalCost) {
+        return setMessage("Cannot afford shipping and route protection.");
+      }
+
+      const risk = calculateShipmentRisk(
+        {
+          transport: transportName,
+          security: state.security,
+          loads: state.shipmentDraft,
+        },
+        destinationProfile(),
+        state.notoriety,
+      );
+
+      state.money -= totalCost;
+
+      state.shipmentDraft.forEach((load) => {
+        state.cargo[load.item] = (state.cargo[load.item] || 0) - load.qty;
+        if (state.cargo[load.item] <= 0) delete state.cargo[load.item];
+      });
+
+      state.shipments.unshift({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        loads: state.shipmentDraft.map((load) => ({ ...load })),
+        totalQty,
+        from: state.currentCity,
+        to: state.selectedShipmentDestination,
+        turns: transport.time,
+        originalTurns: transport.time,
+        transport: transportName,
+        security: { ...state.security },
+        totalCost,
+        risk,
+      });
+
+      state.shipmentDraft = [];
+      state.security = { insurance: false, guards: false, bribe: false, stealth: false };
+
+      setMessage(
+        "Shipment dispatched from " +
+          state.currentCity +
+          " to " +
+          state.selectedShipmentDestination +
+          " by " +
+          transportName +
+          " for $" +
+          totalCost.toLocaleString() +
+          ".",
+      );
+    }
+
+    function commitPiracy() {
+      const profile = currentProfile();
+      if (!profile.shipUse) return setMessage("You need a port city to raid shipping lanes.");
+      const risk = 0.25 + profile.law * 0.45 - profile.corruption * 0.18 + state.notoriety / 160;
+      const reward = Math.round(300 + profile.piracy * 2200 + Math.random() * 500);
+
+      if (Math.random() > risk) {
+        state.money += reward;
+        state.notoriety = Math.min(100, state.notoriety + 12);
+        setMessage("Piracy paid off near " + state.currentCity + ". You pocketed $" + reward.toLocaleString() + ".");
+      } else {
+        const fine = Math.round(500 + profile.law * 1200 + state.notoriety * 12);
+        state.money = Math.max(0, state.money - fine);
+        state.notoriety = Math.min(100, state.notoriety + 18);
+        setMessage("The piracy run failed near " + state.currentCity + ". Losses cost you $" + fine.toLocaleString() + ".");
+      }
+    }
+
+    function commitTheft() {
+      const qty = parseInt(state.tradeAmount, 10);
+      if (!qty || qty <= 0) return setMessage("Enter a real amount first.");
+
+      const profile = currentProfile();
+      const risk = 0.18 + profile.law * 0.42 - profile.corruption * 0.16 + state.notoriety / 170;
+      if (Math.random() > risk) {
+        state.cargo[state.marketItem] = (state.cargo[state.marketItem] || 0) + qty;
+        state.notoriety = Math.min(100, state.notoriety + 8);
+        setMessage("You stole " + qty + " " + state.marketItem + " in " + state.currentCity + ".");
+      } else {
+        const fine = Math.round((currentPrices()[state.marketItem] || 0) * qty * (0.8 + profile.law));
+        state.money = Math.max(0, state.money - fine);
+        state.notoriety = Math.min(100, state.notoriety + 14);
+        setMessage("The theft failed in " + state.currentCity + ". Fines cost you $" + fine.toLocaleString() + ".");
+      }
+    }
+
+    function createShortage() {
+      const qty = parseInt(state.tradeAmount, 10);
+      if (!qty || qty <= 0) return setMessage("Enter a real amount first.");
+
+      const cost = (currentPrices()[state.marketItem] || 0) * qty;
+      if (state.money < cost) return setMessage("You cannot afford to hoard that much inventory.");
+
+      const profile = currentProfile();
+      state.money -= cost;
+      state.manipulationState[state.currentCity][state.marketItem] = Math.min(
+        2.2,
+        (state.manipulationState[state.currentCity][state.marketItem] || 1) + 0.18,
+      );
+
+      nudgeLocalPrice(state.currentCity, state.marketItem, 1.08);
+
+      const risk = 0.16 + profile.law * 0.34 - profile.corruption * 0.1 + state.notoriety / 200;
+      if (Math.random() < risk) {
+        const penalty = Math.round(cost * (0.35 + profile.law));
+        state.money = Math.max(0, state.money - penalty);
+        state.notoriety = Math.min(100, state.notoriety + 10);
+        setMessage(
+          "You engineered a shortage in " +
+            state.currentCity +
+            ", but regulators noticed. Penalties: $" +
+            penalty.toLocaleString() +
+            ".",
+        );
+      } else {
+        state.notoriety = Math.min(100, state.notoriety + 6);
+        setMessage("You hoarded " + state.marketItem + " in " + state.currentCity + ". Prices are moving your way.");
+      }
+    }
+
+    function resolveIncident(action) {
+      const incident = activeIncident();
+      if (!incident || !incident.shipment) return;
+
+      const shipment = incident.shipment;
+      const destination = cityProfiles[shipment.to];
+      const continent = cityToContinent[shipment.to];
+      const marketAtDestination = state.market[shipment.to];
+
+      let newMoney = state.money;
+      let resultMessage = "";
+      let followUpIncident = null;
+
+      function depositLoadsToStorage() {
+        shipment.loads.forEach((load) => {
+          state.cityStorage[shipment.to][load.item] = (state.cityStorage[shipment.to][load.item] || 0) + load.qty;
+        });
+      }
+
+      const shipmentValue = shipment.loads.reduce((sum, load) => {
+        return sum + (marketAtDestination[load.item] || 0) * load.qty;
+      }, 0);
+
+      if (incident.type === "pirates") {
+        const surviveRoll = Math.random();
+        const threshold = shipment.security.guards ? 0.82 : 0.28;
+
+        if (surviveRoll < threshold) {
+          depositLoadsToStorage();
+          resultMessage = shipment.security.guards
+            ? "Your armed guards fought off the pirates. The cargo reached storage in " + shipment.to + "."
+            : "The pirates failed to take the shipment. Luck did what planning did not.";
+        } else if (shipment.security.insurance) {
+          const payout = Math.round(shipmentValue * 0.8);
+          newMoney += payout;
+          resultMessage = "Pirates took the cargo. Insurance paid $" + payout.toLocaleString() + ".";
+        } else {
+          resultMessage = "Pirates took the cargo. No payout. No mercy.";
+        }
+      }
+
+      if (incident.type === "airportLoss") {
+        let insuredValue = 0;
+
+        shipment.loads.forEach((load) => {
+          const lostQty = Math.max(1, Math.floor(load.qty * 0.4));
+          const savedQty = load.qty - lostQty;
+
+          if (savedQty > 0) {
+            state.cityStorage[shipment.to][load.item] = (state.cityStorage[shipment.to][load.item] || 0) + savedQty;
+          }
+
+          insuredValue += (marketAtDestination[load.item] || 0) * lostQty;
+        });
+
+        if (shipment.security.insurance) {
+          const payout = Math.round(insuredValue * 0.8);
+          newMoney += payout;
+          resultMessage = "Airport handlers lost part of the shipment. Insurance paid $" + payout.toLocaleString() + ".";
+        } else {
+          resultMessage = "Airport handlers lost part of the shipment. No insurer came to save the day.";
+        }
+      }
+
+      if (incident.type === "customs") {
+        if (action === "customsBribe") {
+          const cost = 350;
+          newMoney -= cost;
+          const successChance =
+            getContinentBribeEffect(continent, "customs") +
+            destination.corruption * 0.2 +
+            (shipment.security.bribe ? 0.1 : 0);
+
+          if (Math.random() < successChance) {
+            depositLoadsToStorage();
+            resultMessage = "Customs took the money and looked away in " + shipment.to + ". Cargo released into storage.";
+          } else {
+            followUpIncident = {
+              id: incident.id + "-police",
+              type: "police",
+              shipment,
+              title: "Police investigation in " + shipment.to,
+              description:
+                "The customs bribe failed and the matter moved to police. Try another bribe or let the case escalate.",
+              options: ["policeBribe", "acceptLoss"],
+            };
+            resultMessage = "Customs bribe failed. Police are now involved.";
+          }
+        } else {
+          resultMessage = "You accepted customs confiscation in " + shipment.to + ". The cargo is gone.";
+        }
+      }
+
+      if (incident.type === "police") {
+        if (action === "policeBribe") {
+          const cost = 600;
+          newMoney -= cost;
+          const successChance =
+            getContinentBribeEffect(continent, "police") +
+            destination.corruption * 0.15 +
+            (shipment.security.bribe ? 0.08 : 0);
+
+          if (Math.random() < successChance) {
+            depositLoadsToStorage();
+            resultMessage = "Police accepted the payment and the cargo quietly reappeared in storage.";
+          } else {
+            followUpIncident = {
+              id: incident.id + "-judge",
+              type: "judge",
+              shipment,
+              title: "Court case in " + shipment.to,
+              description:
+                "The police bribe failed. The case is now in court. Judge outcomes depend heavily on where you are.",
+              options: ["judgeBribe", "acceptLoss"],
+            };
+            resultMessage = "Police bribe failed. The case moved to court.";
+          }
+        } else {
+          followUpIncident = {
+            id: incident.id + "-judge",
+            type: "judge",
+            shipment,
+            title: "Court case in " + shipment.to,
+            description:
+              "You refused to bribe police. The case is now in court. Time to test your faith in systems.",
+            options: ["judgeBribe", "acceptLoss"],
+          };
+          resultMessage = "The case advanced to court.";
+        }
+      }
+
+      if (incident.type === "judge") {
+        if (action === "judgeBribe") {
+          const cost = 1100;
+          newMoney -= cost;
+          const successChance = getContinentBribeEffect(continent, "judge") + destination.corruption * 0.05;
+
+          if (Math.random() < successChance) {
+            depositLoadsToStorage();
+            resultMessage =
+              continent === "Africa"
+                ? "The judge in " + shipment.to + " was bought and the case vanished. Cargo released to storage."
+                : "The judge was influenced and the cargo was released to storage. Rare, ugly, profitable.";
+          } else {
+            const penalty = continent === "North America" ? 1800 : 1200;
+            newMoney -= penalty;
+            resultMessage =
+              continent === "North America"
+                ? "Bribing the judge in " + shipment.to + " backfired badly. Extra penalties: $" + penalty.toLocaleString() + ". Cargo lost."
+                : "The judge bribe failed. Penalties added: $" + penalty.toLocaleString() + ". Cargo lost.";
+          }
+        } else {
+          resultMessage = "You let the court process run. The cargo was seized and the case closed against you.";
+        }
+      }
+
+      state.money = Math.max(0, newMoney);
+      state.incidentQueue = state.incidentQueue.filter((entry) => entry.id !== incident.id);
+      if (followUpIncident) {
+        state.incidentQueue.unshift(followUpIncident);
+      }
+
+      setMessage(resultMessage);
+    }
+
+    function nextTurn() {
+      if (activeIncident()) {
+        return setMessage("Resolve the active problem before ending another turn.");
+      }
+
+      const wasDetained = state.detainedTurns > 0;
+      if (wasDetained) {
+        state.detainedTurns = Math.max(0, state.detainedTurns - 1);
+      }
+
+      const decremented = state.shipments.map((shipment) => ({
+        ...shipment,
+        turns: shipment.turns - 1,
+      }));
+      const finished = decremented.filter((shipment) => shipment.turns <= 0);
+      const ongoing = decremented.filter((shipment) => shipment.turns > 0);
+
+      let newMoney = state.money;
+      const messages = [];
+      const newIncidents = [];
+
+      finished.forEach((shipment) => {
+        const incident = createIncident(shipment, cityProfiles[shipment.to]);
+        if (incident) {
+          newIncidents.push(incident);
+          messages.push("Problem on route to " + shipment.to + ": " + incident.title);
+        } else {
+          shipment.loads.forEach((load) => {
+            state.cityStorage[shipment.to][load.item] = (state.cityStorage[shipment.to][load.item] || 0) + load.qty;
+          });
+          messages.push("Shipment arrived in " + shipment.to + " and is now waiting in storage.");
+        }
+      });
+
+      allCities.forEach((city) => {
+        const items = state.cityStorage[city] || {};
+        const totalStored = Object.values(items).reduce((sum, qty) => sum + qty, 0);
+        if (totalStored === 0) return;
+
+        const prepaid = state.storagePlan[city];
+        const storageCost = prepaid ? totalStored * 2 : totalStored * 6;
+        newMoney -= storageCost;
+
+        if (!prepaid) {
+          newMoney -= totalStored * 2;
+          messages.push("Storage penalties hit in " + city + " because no warehouse plan was in place.");
+        }
+
+        const illegalStored = Object.keys(items).some((item) => illegalGoods.has(item));
+        if (
+          illegalStored &&
+          Math.random() < cityProfiles[city].law * (prepaid ? 0.18 : 0.32) + state.notoriety / 250
+        ) {
+          newIncidents.push({
+            id: city + "-storage-" + state.turn,
+            type: "customs",
+            shipment: {
+              id: Date.now() + Math.floor(Math.random() * 1000),
+              loads: Object.entries(items).map(([item, qty]) => ({ item, qty })),
+              totalQty: totalStored,
+              from: city,
+              to: city,
+              turns: 0,
+              originalTurns: 0,
+              transport: "Truck",
+              security: { insurance: false, guards: false, bribe: prepaid, stealth: false },
+              totalCost: 0,
+              risk: 0,
+            },
+            title: "Stored contraband drew attention in " + city,
+            description:
+              "Illegal goods sat in storage too long. Customs noticed. Warehouses are not magical voids.",
+            options: ["customsBribe", "acceptLoss"],
+          });
+        }
+      });
+
+      const updatedManipulations = makeEmptyManipulations();
+      allCities.forEach((city) => {
+        Object.entries(state.manipulationState[city] || {}).forEach(([item, multiplier]) => {
+          const nextMultiplier = Math.max(1, multiplier - 0.08);
+          if (nextMultiplier > 1.01) {
+            updatedManipulations[city][item] = nextMultiplier;
+          }
+        });
+      });
+
+      const marketStep = advanceStableMarket(
+        state.market,
+        updatedManipulations,
+        state.cityStorage,
+        ongoing,
+        state.turn,
+      );
+
+      state.turn += 1;
+      state.money = Math.max(0, newMoney);
+      state.shipments = ongoing;
+      state.manipulationState = updatedManipulations;
+      state.market = marketStep.next;
+      state.marketHistory = [...state.marketHistory.slice(-19), deepClone(marketStep.next)];
+      state.incidentQueue = [...newIncidents, ...state.incidentQueue];
+      state.marketNews = [...marketStep.headlines, ...state.marketNews].slice(0, 8);
+      state.notoriety = Math.max(0, state.notoriety - 1);
+
+      if (wasDetained) {
+        messages.unshift("You lost a turn to detention while the markets kept moving without you.");
+      }
+
+      state.message =
+        messages.length > 0
+          ? messages.join(" ")
+          : marketStep.headlines[0] || "Turn advanced. Markets shifted, storage bills arrived, and life got harder.";
+
+      render();
+    }
+
+    function colorForTransport(transport) {
+      if (transport === "Plane") return "plane";
+      if (transport === "Ship") return "ship";
+      if (transport === "Train") return "train";
+      return "truck";
+    }
+
+    function mapRouteLines() {
+      return state.shipments
+        .map((shipment) => {
+          const fromPos = cityMapPositions[shipment.from];
+          const toPos = cityMapPositions[shipment.to];
+          if (!fromPos || !toPos) return "";
+
+          const angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) * (180 / Math.PI);
+          const distance = Math.sqrt(Math.pow(toPos.x - fromPos.x, 2) + Math.pow(toPos.y - fromPos.y, 2));
+          const progress = 1 - shipment.turns / shipment.originalTurns;
+          const currentX = fromPos.x + (toPos.x - fromPos.x) * progress;
+          const currentY = fromPos.y + (toPos.y - fromPos.y) * progress;
+          const transportClass = colorForTransport(shipment.transport);
+
+          return (
+            '<div class="route-line ' +
+            transportClass +
+            '" style="left:' +
+            fromPos.x +
+            "%;top:" +
+            fromPos.y +
+            "%;width:" +
+            distance +
+            '%;transform:rotate(' +
+            angle +
+            'deg)"></div>' +
+            '<div class="shipment-dot ' +
+            transportClass +
+            '" style="left:' +
+            currentX +
+            "%;top:" +
+            currentY +
+            '%;">' +
+            shipment.transport.charAt(0) +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+
+    function cityNode(city) {
+      const pos = cityMapPositions[city];
+      if (!pos) return "";
+
+      const isCurrent = city === state.currentCity;
+      const isSelected = city === state.selectedTravelCity;
+      const storedHere = Object.values(state.cityStorage[city] || {}).reduce((sum, qty) => sum + qty, 0);
+      const profile = cityProfiles[city];
+
+      const dotColor = isCurrent
+        ? "#ffffff"
+        : isSelected
+          ? "#fde047"
+          : continentColors[cityToContinent[city]] || "#38bdf8";
+
+      const showLabel = isCurrent || isSelected || storedHere > 0 || profile.safeHaven;
+
+      return (
+        '<button class="city" style="left:' +
+        pos.x +
+        "%;top:" +
+        pos.y +
+        '%;" onclick="selectTravelCity(\'' +
+        city.replace(/'/g, "\\'") +
+        "')\">" +
+        '<div class="city-dot" style="background:' +
+        dotColor +
+        ';"></div>' +
+        (showLabel
+          ? '<div class="city-label"><strong>' +
+            city +
+            "</strong>" +
+            cityToContinent[city] +
+            (storedHere > 0 ? '<div style="color:#fcd34d;">Stored: ' + storedHere + "</div>" : "") +
+            (profile.safeHaven ? '<div style="color:#86efac;">Safe haven</div>' : "") +
+            (isCurrent ? '<div style="color:#7dd3fc;">You</div>' : "") +
+            "</div>"
+          : "") +
+        "</button>"
+      );
+    }
+
+    function renderMainScreen() {
+      const profile = cityProfiles[state.selectedTravelCity];
+
+      return (
+        '<div class="panel">' +
+        '<div class="title">Main Screen</div>' +
+        '<div class="map">' +
+        '<div class="map-toolbar">' +
+        "<span>World Map</span>" +
+        '<div class="row">' +
+        '<button class="btn small ghost" onclick="setMapZoom(-0.15)">-</button>' +
+        '<button class="btn small ghost" onclick="resetMapZoom()">100%</button>' +
+        '<button class="btn small ghost" onclick="setMapZoom(0.15)">+</button>' +
+        "</div>" +
+        "</div>" +
+        '<div class="map-inner" style="transform:scale(' +
+        state.mapZoom +
+        ');">' +
+        '<div class="map-grid"></div>' +
+        '<div class="land" style="left:7%;top:20%;width:20%;height:40%;"></div>' +
+        '<div class="land" style="left:17%;top:48%;width:16%;height:24%;"></div>' +
+        '<div class="land" style="left:37%;top:10%;width:28%;height:64%;"></div>' +
+        '<div class="land" style="left:48%;top:28%;width:18%;height:44%;"></div>' +
+        '<div class="land" style="left:63%;top:20%;width:24%;height:52%;"></div>' +
+        '<div class="land" style="left:73%;top:56%;width:16%;height:14%;"></div>' +
+        mapRouteLines() +
+        allCities.map(cityNode).join("") +
+        "</div>" +
+        "</div>" +
+
+        '<div class="section mt-12">' +
+        '<div class="section-title">Travel</div>' +
+        '<div class="field"><label>Destination</label><select onchange="updateField(\'selectedTravelCity\', this.value)">' +
+        travelOptions()
+          .map(
+            (city) =>
+              '<option value="' +
+              city +
+              '"' +
+              (state.selectedTravelCity === city ? " selected" : "") +
+              ">" +
+              city +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="list-item">' +
+        '<div class="list-title">' +
+        state.selectedTravelCity +
+        "</div>" +
+        '<div class="list-text">' +
+        profile.continent +
+        "</div>" +
+        '<div class="chip-row">' +
+        (profile.safeHaven ? '<div class="chip">Safe Haven</div>' : "") +
+        (profile.strictEntry ? '<div class="chip">Strict Entry</div>' : "") +
+        '<div class="chip">Law ' + Math.round(profile.law * 100) + "%</div>" +
+        '<div class="chip">Corruption ' + Math.round(profile.corruption * 100) + "%</div>" +
+        "</div>" +
+        "</div>" +
+
+        '<div class="grid-2 mt-10">' +
+        '<button class="btn primary" onclick="travel()">Travel</button>' +
+        '<button class="btn ghost" onclick="buyFakePassport()">' +
+        (state.fakePassport ? "Upgrade Passport" : "Fake Passport") +
+        "</button>" +
+        "</div>" +
+
+        '<div class="list-item mt-10">' +
+        '<div class="list-text">Passport: ' +
+        (state.fakePassport ? (state.passportQuality * 100).toFixed(0) + "% quality" : "None") +
+        " | Detained turns: " +
+        state.detainedTurns +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Latest News</div>' +
+        (state.marketNews.length === 0
+          ? '<div class="subtle">No major market shocks yet.</div>'
+          : state.marketNews
+              .slice(0, 3)
+              .map((entry) => '<div class="list-item"><div class="list-text" style="margin-top:0;">' + entry + "</div></div>")
+              .join("")) +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderMarketScreen() {
+      const prices = currentPrices();
+      const cheapest = cheapestForItem();
+      const priciest = priciestForItem();
+
+      return (
+        '<div class="panel">' +
+        '<div class="title">Market</div>' +
+
+        '<div class="section">' +
+        '<div class="section-title">Trade</div>' +
+
+        '<div class="field"><label>Category</label><select onchange="setMarketCategory(this.value)">' +
+        Object.keys(productCatalog)
+          .map(
+            (category) =>
+              '<option value="' +
+              category +
+              '"' +
+              (state.marketCategory === category ? " selected" : "") +
+              ">" +
+              category +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="field"><label>Item</label><select onchange="updateField(\'marketItem\', this.value)">' +
+        productCatalog[state.marketCategory]
+          .map(
+            (item) =>
+              '<option value="' +
+              item +
+              '"' +
+              (state.marketItem === item ? " selected" : "") +
+              ">" +
+              item +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="field"><label>Amount</label><input value="' +
+        state.tradeAmount +
+        '" onchange="updateField(\'tradeAmount\', this.value)" /></div>' +
+
+        '<div class="list-item">' +
+        '<div class="list-row"><div class="list-title">Price in ' +
+        state.currentCity +
+        '</div><div class="badge">$' +
+        ((prices[state.marketItem] || 0).toLocaleString()) +
+        "</div></div>" +
+        '<div class="list-text">World average: $' +
+        worldAverageForItem().toLocaleString() +
+        "<br>Cheapest: " +
+        cheapest.city +
+        " ($" +
+        cheapest.price.toLocaleString() +
+        ")<br>Best sale: " +
+        priciest.city +
+        " ($" +
+        priciest.price.toLocaleString() +
+        ")</div>" +
+        "</div>" +
+
+        '<div class="grid-2 mt-10">' +
+        '<button class="btn primary" onclick="buyItem()">Buy</button>' +
+        '<button class="btn ghost" onclick="sellItem()">Sell</button>' +
+        "</div>" +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Cargo</div>' +
+        renderCargoList(state.cargo, "No cargo in hand.") +
+        '<div class="mt-12"></div>' +
+        '<div class="section-title">Stored in ' + state.currentCity + "</div>" +
+        '<div class="subtle">Prepaid storage: ' + (state.storagePlan[state.currentCity] ? "Yes" : "No") + "</div>" +
+        '<div class="mt-8">' + renderCargoList(currentStorage(), "Nothing waiting in local storage.") + "</div>" +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Underground</div>' +
+        '<div class="grid-3">' +
+        '<button class="btn ghost" onclick="commitPiracy()">Piracy</button>' +
+        '<button class="btn ghost" onclick="commitTheft()">Theft</button>' +
+        '<button class="btn ghost" onclick="createShortage()">Shortage</button>' +
+        "</div>" +
+        '<div class="list-item mt-10"><div class="list-text" style="margin-top:0;">Higher notoriety increases scrutiny, storage detection, fines, and border trouble.</div></div>' +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderLogisticsScreen() {
+      const options = availableTransport();
+      const transportName = resolvedTransport();
+
+      return (
+        '<div class="panel">' +
+        '<div class="title">Shipping</div>' +
+
+        '<div class="section">' +
+        '<div class="section-title">Build Shipment</div>' +
+
+        '<div class="field"><label>Destination</label><select onchange="setSelectedShipmentDestination(this.value)">' +
+        shipmentDestinationOptions()
+          .map(
+            (city) =>
+              '<option value="' +
+              city +
+              '"' +
+              (state.selectedShipmentDestination === city ? " selected" : "") +
+              ">" +
+              city +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="field"><label>Transport</label><select onchange="updateField(\'selectedShipmentTransport\', this.value)">' +
+        options
+          .map(
+            ([name]) =>
+              '<option value="' +
+              name +
+              '"' +
+              (transportName === name ? " selected" : "") +
+              ">" +
+              name +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="list-item">' +
+        '<div class="list-text" style="margin-top:0;">Time: ' +
+        transportTypes[transportName].time +
+        " turn" +
+        (transportTypes[transportName].time > 1 ? "s" : "") +
+        "<br>Capacity: " +
+        transportTypes[transportName].capacity +
+        "<br>Cost preview: $" +
+        routeCostPreview().toLocaleString() +
+        "<br>Risk: " +
+        Math.round(routeRiskPreview() * 100) +
+        "%</div></div>" +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Cargo for Shipment</div>' +
+
+        '<div class="field"><label>Item</label><select onchange="updateField(\'shipmentItem\', this.value)">' +
+        allItems
+          .map(
+            (item) =>
+              '<option value="' +
+              item +
+              '"' +
+              (state.shipmentItem === item ? " selected" : "") +
+              ">" +
+              item +
+              "</option>",
+          )
+          .join("") +
+        "</select></div>" +
+
+        '<div class="field"><label>Amount</label><input value="' +
+        state.shipmentAmount +
+        '" onchange="updateField(\'shipmentAmount\', this.value)" /></div>' +
+
+        '<button class="btn ghost" style="width:100%;" onclick="addToShipmentDraft()">Add to Shipment</button>' +
+
+        '<div class="mt-10">' +
+        (state.shipmentDraft.length === 0
+          ? '<div class="list-item"><div class="subtle">No cargo assigned yet.</div></div>'
+          : state.shipmentDraft
+              .map(
+                (load) =>
+                  '<div class="list-item">' +
+                  '<div class="list-row"><div class="list-title">' +
+                  load.item +
+                  '</div><div class="badge">' +
+                  load.qty +
+                  "</div></div>" +
+                  '<div class="row mt-10">' +
+                  '<button class="btn small ghost" onclick="changeDraftQuantity(\'' +
+                  load.item.replace(/'/g, "\\'") +
+                  "', -1)\">-</button>" +
+                  '<button class="btn small ghost" onclick="changeDraftQuantity(\'' +
+                  load.item.replace(/'/g, "\\'") +
+                  "', 1)\">+</button>" +
+                  '<button class="btn small ghost" style="margin-left:auto;" onclick="removeDraftItem(\'' +
+                  load.item.replace(/'/g, "\\'") +
+                  "')\">Remove</button>" +
+                  "</div></div>",
+              )
+              .join("")) +
+        "</div>" +
+
+        '<div class="grid-2 mt-10">' +
+        Object.keys(securityOptions)
+          .map((key) => {
+            const option = securityOptions[key];
+            return (
+              '<button class="btn ' +
+              (state.security[key] ? "active" : "ghost") +
+              '" onclick="toggleSecurity(\'' +
+              key +
+              "')\">" +
+              option.label +
+              "<br><span class=\"subtle\" style=\"color:inherit;opacity:.85;\">$" +
+              option.cost +
+              "</span></button>"
+            );
+          })
+          .join("") +
+        "</div>" +
+
+        '<button class="btn primary mt-10" style="width:100%;" onclick="dispatchShipment()">Dispatch Shipment</button>' +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">In Transit</div>' +
+        (state.shipments.length === 0
+          ? '<div class="list-item"><div class="subtle">No active shipments.</div></div>'
+          : state.shipments
+              .map(
+                (shipment) =>
+                  '<div class="list-item">' +
+                  '<div class="list-row"><div class="list-title">' +
+                  shipment.from +
+                  " → " +
+                  shipment.to +
+                  '</div><div class="badge">' +
+                  shipment.totalQty +
+                  "</div></div>" +
+                  '<div class="list-text">' +
+                  shipment.transport +
+                  " | " +
+                  shipment.turns +
+                  " turn" +
+                  (shipment.turns > 1 ? "s" : "") +
+                  " left<br>Risk " +
+                  Math.round(shipment.risk * 100) +
+                  "%<br>" +
+                  shipment.loads.map((load) => load.item + " x " + load.qty).join(", ") +
+                  "</div></div>",
+              )
+              .join("")) +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderStorageScreen() {
+      const citiesWithStorage = allCities.filter(
+        (city) => Object.values(state.cityStorage[city] || {}).reduce((sum, qty) => sum + qty, 0) > 0,
+      );
+
+      return (
+        '<div class="panel">' +
+        '<div class="title">Storage</div>' +
+
+        '<div class="section">' +
+        '<div class="section-title">Current City Storage</div>' +
+        '<div class="list-item">' +
+        '<div class="list-row"><div class="list-title">' +
+        state.currentCity +
+        '</div><div class="badge">' +
+        storedCargoCount() +
+        "</div></div>" +
+        '<div class="list-text">Prepaid storage: ' +
+        (state.storagePlan[state.currentCity] ? "Yes" : "No") +
+        "</div></div>" +
+
+        '<div class="mt-10">' + renderCargoList(currentStorage(), "Nothing waiting in local storage.") + "</div>" +
+
+        '<button class="btn ghost mt-10" style="width:100%;" onclick="prepayStorage()">' +
+        "Prepay Storage in " +
+        state.currentCity +
+        "</button>" +
+
+        '<div class="list-item mt-10"><div class="list-text" style="margin-top:0;">Prepaid storage is cheap. No prepaid storage means heavier fees and more customs attention.</div></div>' +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Cargo Around the World</div>' +
+        (citiesWithStorage.length === 0
+          ? '<div class="list-item"><div class="subtle">No goods are sitting in storage anywhere.</div></div>'
+          : citiesWithStorage
+              .map((city) => {
+                const total = Object.values(state.cityStorage[city] || {}).reduce((sum, qty) => sum + qty, 0);
+                return (
+                  '<div class="list-item">' +
+                  '<div class="list-row"><div class="list-title">' +
+                  city +
+                  '</div><div class="badge">' +
+                  total +
+                  "</div></div>" +
+                  '<div class="list-text">Prepaid: ' +
+                  (state.storagePlan[city] ? "Yes" : "No") +
+                  "</div>" +
+                  '<div class="mt-8">' +
+                  renderCargoList(state.cityStorage[city] || {}, "Nothing here.") +
+                  "</div></div>"
+                );
+              })
+              .join("")) +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderIntelScreen() {
+      return (
+        '<div class="panel">' +
+        '<div class="title">Intel</div>' +
+
+        '<div class="section">' +
+        '<div class="grid-2">' +
+        '<button class="btn ' +
+        (state.dashboardMode === "city" ? "active" : "ghost") +
+        '" onclick="setDashboardMode(\'city\')">City View</button>' +
+        '<button class="btn ' +
+        (state.dashboardMode === "good" ? "active" : "ghost") +
+        '" onclick="setDashboardMode(\'good\')">Good View</button>' +
+        "</div>" +
+
+        (state.dashboardMode === "city"
+          ? '<div class="field mt-10"><label>City</label><select onchange="updateField(\'dashboardCity\', this.value)">' +
+            allCities
+              .map(
+                (city) =>
+                  '<option value="' +
+                  city +
+                  '"' +
+                  (state.dashboardCity === city ? " selected" : "") +
+                  ">" +
+                  city +
+                  "</option>",
+              )
+              .join("") +
+            "</select></div>"
+          : '<div class="field mt-10"><label>Good</label><select onchange="updateField(\'dashboardGood\', this.value)">' +
+            allItems
+              .map(
+                (item) =>
+                  '<option value="' +
+                  item +
+                  '"' +
+                  (state.dashboardGood === item ? " selected" : "") +
+                  ">" +
+                  item +
+                  "</option>",
+              )
+              .join("") +
+            "</select></div>") +
+
+        '<div class="canvas-wrap mt-10"><canvas id="marketChart"></canvas></div>' +
+        "</div>" +
+
+        '<div class="section">' +
+        '<div class="section-title">Current Snapshot</div>' +
+        (state.dashboardMode === "city"
+          ? Object.entries(state.market[state.dashboardCity] || {})
+              .map(
+                ([item, price]) =>
+                  '<div class="list-item"><div class="list-row"><div class="list-title">' +
+                  item +
+                  '</div><div class="badge">$' +
+                  price.toLocaleString() +
+                  "</div></div></div>",
+              )
+              .join("")
+          : [...allCities]
+              .sort(
+                (a, b) =>
+                  ((state.market[b] && state.market[b][state.dashboardGood]) || 0) -
+                  ((state.market[a] && state.market[a][state.dashboardGood]) || 0),
+              )
+              .map(
+                (city) =>
+                  '<div class="list-item"><div class="list-row"><div class="list-title">' +
+                  city +
+                  '</div><div class="badge">$' +
+                  (((state.market[city] && state.market[city][state.dashboardGood]) || 0).toLocaleString()) +
+                  "</div></div></div>",
+              )
+              .join("")) +
+        "</div>" +
+
+        '<details>' +
+        "<summary>All Cities Prices</summary>" +
+        '<div class="mt-10">' +
+        allCities
+          .map(
+            (city) =>
+              '<div class="list-item">' +
+              '<div class="list-title">' +
+              city +
+              "</div>" +
+              '<div class="price-grid">' +
+              allItems
+                .map(
+                  (item) =>
+                    '<div class="price-cell"><span>' +
+                    item +
+                    "</span><span>$" +
+                    (((state.market[city] && state.market[city][item]) || 0).toLocaleString()) +
+                    "</span></div>",
+                )
+                .join("") +
+              "</div></div>",
+          )
+          .join("") +
+        "</div></details>" +
+
+        '<div class="section mt-12">' +
+        '<div class="section-title">Market News</div>' +
+        (state.marketNews.length === 0
+          ? '<div class="list-item"><div class="subtle">No major market shocks yet.</div></div>'
+          : state.marketNews
+              .map((entry) => '<div class="list-item"><div class="list-text" style="margin-top:0;">' + entry + "</div></div>")
+              .join("")) +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function renderIncident() {
+      const incident = activeIncident();
+      if (!incident || !incident.shipment) return "";
+
+      return (
+        '<div class="panel incident">' +
+        '<div class="title">Active Problem: ' +
+        incident.title +
+        "</div>" +
+        '<div class="list-text" style="margin-top:0;">' +
+        incident.description +
+        "</div>" +
+        '<div class="list-text">Cargo: ' +
+        incident.shipment.loads.map((load) => load.item + " x " + load.qty).join(", ") +
+        "</div>" +
+        '<div class="grid-2 mt-10">' +
+        incident.options
+          .map(
+            (optionKey) =>
+              '<button class="btn ' +
+              (optionKey === "acceptLoss" ? "ghost" : "primary") +
+              '" onclick="resolveIncident(\'' +
+              optionKey +
+              "')\">" +
+              crisisActions[optionKey].label +
+              "</button>",
+          )
+          .join("") +
+        "</div></div>"
+      );
+    }
+
+    function renderStatus() {
+      return (
+        '<div class="panel">' +
+        '<div class="title">Status</div>' +
+        '<div class="status-box">' +
+        state.message +
+        "</div></div>"
+      );
+    }
+
+    function renderHeader() {
+      return (
+        '<div class="topbar"><div class="topbar-inner">' +
+        '<div class="grid-2">' +
+        '<button class="btn ' +
+        (state.screen === "main" ? "active" : "ghost") +
+        '" onclick="setScreen(\'main\')">Main Screen</button>' +
+        '<button class="btn primary" onclick="nextTurn()">End Turn</button>' +
+        "</div>" +
+        '<div class="grid-4 mt-10">' +
+        '<div class="stat-card"><div class="stat-label">City</div><div class="stat-value">' +
+        state.currentCity +
+        "</div></div>" +
+        '<div class="stat-card"><div class="stat-label">Cash</div><div class="stat-value">$' +
+        state.money.toLocaleString() +
+        "</div></div>" +
+        '<div class="stat-card"><div class="stat-label">Cargo</div><div class="stat-value">' +
+        cargoCount() +
+        "</div></div>" +
+        '<div class="stat-card"><div class="stat-label">Heat</div><div class="stat-value">' +
+        notorietyLabel() +
+        "</div></div>" +
+        "</div></div></div>"
+      );
+    }
+
+    function renderBottomNav() {
+      return (
+        '<div class="bottom-nav"><div class="bottom-nav-inner">' +
+        '<div class="grid-4">' +
+        '<button class="btn ' +
+        (state.screen === "market" ? "active" : "ghost") +
+        '" onclick="setScreen(\'market\')">Market</button>' +
+        '<button class="btn ' +
+        (state.screen === "logistics" ? "active" : "ghost") +
+        '" onclick="setScreen(\'logistics\')">Shipping</button>' +
+        '<button class="btn ' +
+        (state.screen === "storage" ? "active" : "ghost") +
+        '" onclick="setScreen(\'storage\')">Storage</button>' +
+        '<button class="btn ' +
+        (state.screen === "intel" ? "active" : "ghost") +
+        '" onclick="setScreen(\'intel\')">Intel</button>' +
+        "</div></div></div>"
+      );
+    }
+
+    function renderMainContent() {
+      if (state.screen === "main") return renderMainScreen();
+      if (state.screen === "market") return renderMarketScreen();
+      if (state.screen === "logistics") return renderLogisticsScreen();
+      if (state.screen === "storage") return renderStorageScreen();
+      return renderIntelScreen();
+    }
+
+    function renderIntelChart() {
+      const canvas = document.getElementById("marketChart");
+      if (!canvas || typeof Chart === "undefined") return;
+
+      const rows = dashboardRows();
+      const labels = rows.map((row) => row.turn);
+      const series = dashboardSeries();
+
+      const datasets = series.map((seriesName, index) => ({
+        label: seriesName,
+        data: rows.map((row) => row[seriesName] || 0),
+        borderColor: "hsl(" + ((index * 47) % 360) + " 70% 45%)",
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.25,
+      }));
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "nearest", intersect: false },
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(148,163,184,0.15)" },
+              ticks: { color: "#64748b" },
+            },
+            y: {
+              grid: { color: "rgba(148,163,184,0.15)" },
+              ticks: { color: "#64748b" },
+            },
+          },
+        },
+      });
+    }
+
+    function render() {
+      const app = document.getElementById("app");
+      app.innerHTML = renderIncident() + renderMainContent() + renderStatus();
+      document.body.insertAdjacentHTML("afterbegin", renderHeader());
+      document.body.insertAdjacentHTML("beforeend", renderBottomNav());
+
+      const oldTop = document.querySelectorAll(".topbar");
+      if (oldTop.length > 1) {
+        oldTop[0].remove();
+      }
+
+      const oldBottom = document.querySelectorAll(".bottom-nav");
+      if (oldBottom.length > 1) {
+        oldBottom[0].remove();
+      }
+
+      if (state.screen === "intel") {
+        renderIntelChart();
+      }
+    }
+
+    function cleanupBars() {
+      document.querySelectorAll(".topbar").forEach((node, index) => {
+        if (index < document.querySelectorAll(".topbar").length - 1) node.remove();
+      });
+      document.querySelectorAll(".bottom-nav").forEach((node, index) => {
+        if (index < document.querySelectorAll(".bottom-nav").length - 1) node.remove();
+      });
+    }
+
+    const originalRender = render;
+    render = function () {
+      document.querySelectorAll(".topbar").forEach((node) => node.remove());
+      document.querySelectorAll(".bottom-nav").forEach((node) => node.remove());
+
+      const app = document.getElementById("app");
+      app.innerHTML = renderIncident() + renderMainContent() + renderStatus();
+      document.body.insertAdjacentHTML("afterbegin", renderHeader());
+      document.body.insertAdjacentHTML("beforeend", renderBottomNav());
+
+      if (state.screen === "intel") {
+        renderIntelChart();
+      } else if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+
+      cleanupBars();
+    };
+
+    function setMapZoom(delta) {
+      state.mapZoom = clamp(Number((state.mapZoom + delta).toFixed(2)), 0.7, 2.2);
+      render();
+    }
+
+    function resetMapZoom() {
+      state.mapZoom = 1;
+      render();
+    }
+
+    function selectTravelCity(city) {
+      state.selectedTravelCity = city;
+      render();
+    }
+
+    function setDashboardMode(mode) {
+      state.dashboardMode = mode;
+      render();
+    }
+
+    function prepayStorage() {
+      if (state.storagePlan[state.currentCity]) return setMessage("Storage in " + state.currentCity + " is already prepaid.");
+      if (state.money < 300) return setMessage("Not enough money to prepay storage.");
+      state.money -= 300;
+      state.storagePlan[state.currentCity] = true;
+      setMessage("You prepaid warehouse space in " + state.currentCity + ".");
+    }
+
+    render();
+  </script>
+</body>
+</html>
